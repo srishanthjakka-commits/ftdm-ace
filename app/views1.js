@@ -10,6 +10,7 @@ const IC = {
   team:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1"/><circle cx="17.5" cy="7" r="2.5"/><path d="M18 13.2a5 5 0 0 1 4 4.8v1"/>',
   progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   talk:'<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>',
+  hub:'<path d="M3 21h18M5 21v-9M9.5 21v-9M14.5 21v-9M19 21v-9M2 9.5 12 4l10 5.5z"/>',
   playbook:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/>',
   prefs:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   check:'<path d="M5 12l5 5L20 7"/>', flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>', play:'<path d="M7 4v16l13-8z"/>', stop:'<rect x="6" y="6" width="12" height="12" rx="1"/>',
@@ -19,7 +20,7 @@ const IC = {
 };
 const icon=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${IC[n]||''}</svg>`;
 const NAV=[['today','Today'],['learn','Learn'],['cards','Cards'],['exam','Exam'],['roleplay','Roleplay'],['team','Team']];
-const NAV2=[['talk','Talking points'],['playbook','Playbook'],['progress','Progress'],['prefs','Settings']];
+const NAV2=[['hub','Finance Hub'],['talk','Talking points'],['playbook','Playbook'],['progress','Progress'],['prefs','Settings']];
 const NAV_OF={lesson:'learn',pis:'learn',quiz:'exam',mock:'exam',review:'exam',case:'roleplay',drills:'roleplay',judge:'roleplay',judgemode:'roleplay',gen:'roleplay'};
 
 function renderChrome(){
@@ -33,7 +34,7 @@ function renderChrome(){
     const av=on.slice(0,3).map(p=>avatarOf(p.by)?`<img class="avatar" alt="" src="${esc(avatarOf(p.by))}">`:'').join('');
     tb.innerHTML = `${on.length?`<a href="#team" class="chip good" title="Partner online"><span class="dot on"></span>${esc(on.length===1?(CL.names[on[0].by]?.name||'Partner'):on.length+' online')} studying</a>`:''}
       <span class="avatars">${av}</span><span class="tiny faint" title="Sync status">${esc(st)}</span>
-      <a class="iconbtn" href="#talk" aria-label="Talking points">${icon('talk')}</a><a class="iconbtn" href="#progress" aria-label="Progress">${icon('progress')}</a><a class="iconbtn" href="#prefs" aria-label="Settings">${icon('prefs')}</a>`;
+      <a class="iconbtn" href="#hub" aria-label="Finance Hub">${icon('hub')}</a><a class="iconbtn" href="#talk" aria-label="Talking points">${icon('talk')}</a><a class="iconbtn" href="#progress" aria-label="Progress">${icon('progress')}</a><a class="iconbtn" href="#prefs" aria-label="Settings">${icon('prefs')}</a>`;
   }
 }
 function head(title,sub='',right=''){ return `<div class="pagehead"><div class="row nowrap between"><h1>${title}</h1>${right}</div>${sub?`<p class="muted">${sub}</p>`:''}</div>`; }
@@ -81,6 +82,7 @@ V.today=()=>{
 V.learn=()=>{
   const ls=LESSON_ORDER.map(id=>LESSON[id]);
   return `<div class="wrap">${head('Learn','15 lessons covering every instructional area on the Finance exam. Read the ideas, then prove it with a 5-question check.')}
+  <a class="card stack-s" href="#hub" style="text-decoration:none;color:inherit;border-color:var(--accent)"><span class="label">New · Finance Hub</span><strong>Every FTDM topic in depth, plus the judge questions each one prepares you for</strong><span class="small muted">${HUB.length} topics · ${HUB_ORDER.length} sub-topics · ${JQCARDS.length} judge questions with strong answers · ${hubReadCount(HUB_ORDER)} read</span></a>
   <div class="grid3">
     <a class="card stack-s" href="#deep" style="text-decoration:none;color:inherit"><span class="label">Go deeper</span><strong>PI deep dives</strong><span class="small muted">${D.deep.length} PIs explained: what to say, real-world proof, exam traps</span></a>
     <a class="card stack-s" href="#charts" style="text-decoration:none;color:inherit"><span class="label">Stand out</span><strong>Charts that win judges</strong><span class="small muted">12 chart types and when to sketch each</span></a>
@@ -120,7 +122,7 @@ V.pis=()=>{
 /* ================= FLASHCARDS ================= */
 V.cards=(deck)=>{
   if(UI.cardSession && UI.cardSession.deck===(deck||UI.cardSession.deck) && !UI.cardSession.finished) return cardSessionView();
-  const decks=[['all','Everything',D.cards],['facts','Real-world facts (roleplay)',FACTCARDS],...LESSON_ORDER.map(id=>[id,LESSON[id].title,D.cards.filter(c=>c.lesson===id)])];
+  const decks=[['all','Everything',D.cards],['facts','Real-world facts (roleplay)',FACTCARDS],['jq','Judge questions (roleplay Q&A)',JQCARDS],...LESSON_ORDER.map(id=>[id,LESSON[id].title,D.cards.filter(c=>c.lesson===id)])];
   const sel=deck||'all'; const list=deckCards(sel); const due=dueCards(list).length, nw=newCardsIn(list).length; const cc=cardCounts(list);
   return `<div class="wrap">${head('Flashcards','Spaced repetition: rate how well you knew each card and the app schedules it right before you would forget. Again comes back in 10 minutes; easy cards wait weeks.')}
   <div class="card stack"><div class="row between"><div class="stack-s"><span class="label">Deck</span><select class="input" data-in="deck" style="max-width:340px">${decks.map(([k,l,a])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(l)} (${a.length})</option>`).join('')}</select></div>
@@ -135,11 +137,11 @@ V.cards=(deck)=>{
 function cardSessionView(){
   const cs=UI.cardSession; const c=CARD[cs.queue[0]];
   if(!c){ cs.finished=true; return `<div class="wrap">${head('Session complete')}<div class="card stack"><p>You reviewed <strong>${cs.done}</strong> cards. ${cs.again} needed another look.</p><div class="row"><a class="btn primary" href="#today">Back to today</a><button class="btn" data-a="startCards" data-deck="${cs.deck}" data-mode="due">Keep going</button></div></div></div>`; }
-  const rev=UI.reverse && c.lesson!=='facts'; const front=rev?c.d:c.t; const backMain=rev?c.t:c.d;
+  const rev=UI.reverse && c.lesson!=='facts' && c.lesson!=='jq'; const front=rev?c.d:c.t; const backMain=rev?c.t:c.d;
   return `<div class="wrap"><div class="row between"><button class="btn ghost sm" data-a="endCards">${icon('back')}End session</button><span class="mono small faint">${cs.done} done · ${cs.queue.length} left</span></div>
   <div class="flash ${cs.flipped?'flipped':''}" data-a="flip" role="button" tabindex="0" aria-label="Flip card">
-    <div class="flash-inner"><div class="face front"><span class="label">${c.lesson==='facts'?'Real-world fact':esc(LESSON[c.lesson]?.title||'')}${S.cards[c.id]?'':' · new'}</span><div class="center"><div class="term" style="${rev?'font-size:1.15rem;font-weight:600;font-family:var(--f-body)':''}">${esc(front)}</div></div><span class="tiny faint">Tap or press Space to reveal</span></div>
-    <div class="face back"><span class="label">${rev?'Term':'Meaning'}</span><div class="center"><div style="font-size:1.08rem;${rev?'font-family:var(--f-display);font-size:1.4rem;font-weight:700':''}">${esc(backMain)}</div>${c.x?`<div class="tip">${c.lesson==='facts'?'<strong>Say it:</strong> ':'<strong>Tip:</strong> '}${esc(c.x)}</div>`:''}${c.src?`<span class="tiny faint">Source: ${esc(c.src)}</span>`:''}</div></div></div></div>
+    <div class="flash-inner"><div class="face front"><span class="label">${c.lesson==='facts'?'Real-world fact':c.lesson==='jq'?'Judge question · answer out loud':esc(LESSON[c.lesson]?.title||'')}${S.cards[c.id]?'':' · new'}</span><div class="center"><div class="term" style="${rev?'font-size:1.15rem;font-weight:600;font-family:var(--f-body)':''}">${esc(front)}</div></div><span class="tiny faint">Tap or press Space to reveal</span></div>
+    <div class="face back"><span class="label">${rev?'Term':c.lesson==='jq'?'A strong answer':'Meaning'}</span><div class="center"><div style="font-size:1.08rem;${rev?'font-family:var(--f-display);font-size:1.4rem;font-weight:700':''}">${esc(backMain)}</div>${c.x?`<div class="tip">${c.lesson==='facts'?'<strong>Say it:</strong> ':'<strong>Tip:</strong> '}${esc(c.x)}</div>`:''}${c.src?`<span class="tiny faint">${c.lesson==='jq'?'Finance Hub: ':'Source: '}${esc(c.src)}</span>`:''}</div></div></div></div>
   <div id="card-ctrl">${cardCtrl(c)}</div>
   </div>`;
 }

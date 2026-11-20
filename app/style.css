@@ -247,3 +247,9 @@ details.card[open]>summary{margin-bottom:10px}
 .chip.pi.link:hover{background:var(--accent-soft);color:var(--accent)}
 .chart-wrap{background:var(--surface-2);border-radius:10px;padding:10px;display:flex;justify-content:center}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:40}
+
+/* Finance Hub */
+a.chip{text-decoration:none}
+.jqd{border-top:1px solid var(--line);padding:10px 0}
+.jqd summary{cursor:pointer;list-style-position:outside;line-height:1.4}
+.jqd[open] summary{color:var(--accent)}

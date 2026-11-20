@@ -3,8 +3,10 @@
 # comes from. Time-sensitive numbers carry an "asof" date: re-check them before each competition.
 # Facts checked November 2026. Never present a forecast as a fact.
 T = []
-def t(topic, pis, title, fact, say, source, asof=""):
-    T.append(dict(id=f"t{len(T)+1}", topic=topic, pis=pis, title=title, fact=fact, say=say, source=source, asof=asof))
+def t(topic, pis, title, fact, say, source, asof="", subs=None, answers=None):
+    # subs: Finance Hub sub-topic ids; answers: judge questions this point helps you answer.
+    T.append(dict(id=f"t{len(T)+1}", topic=topic, pis=pis, title=title, fact=fact, say=say, source=source, asof=asof,
+                  subs=list(subs or []), answers=list(answers or [])))
 
 # ---------------- Saving and investing ----------------
 S = "Saving & investing"
@@ -99,9 +101,9 @@ t(K, ["FI:831"], "FAFSA",
   "\"Before borrowing a dollar, file the FAFSA: it's free and it's the key to grants you never repay.\"",
   "U.S. Department of Education, studentaid.gov")
 t(K, ["FI:065","BL:134"], "Annual gift tax exclusion",
-  "In 2026 a person can give up to $19,000 to any one person without filing a gift tax return; a married couple can give $38,000 per recipient. A 529 allows five years of gifts at once ($95,000).",
+  "In 2026 a person can give up to $19,000 to any one person without filing a gift tax return; a married couple can give $38,000 per recipient. The limit rises to $20,000 ($40,000 per couple) in 2027. A 529 allows five years of gifts at once ($95,000 in 2026).",
   "\"Grandparents can each give $19,000 a year per grandchild with no gift tax paperwork, and a 529 lets them front-load five years.\"",
-  "IRS annual exclusion for 2026", "2026")
+  "IRS annual exclusion for 2026; IRS Rev. Proc. 2026-35 for 2027", "Nov 2026")
 t(K, ["FI:061","FI:569"], "Custodial Roth IRA for teens",
   "A teen with earned income (a part-time job) can have a custodial Roth IRA and contribute up to the lesser of their earnings or the annual limit.",
   "\"With your summer job income, you could open a custodial Roth IRA now and give that money 50 years to grow tax-free.\"",
@@ -125,10 +127,10 @@ t(I, ["FI:571"], "Umbrella liability",
   "Umbrella policies add liability coverage (often $1 million or more) above home and auto limits and are relatively inexpensive.",
   "\"As your net worth grows, an umbrella policy protects it from a lawsuit for roughly the cost of a streaming subscription a month.\"",
   "Insurance Information Institute (iii.org)")
-t(I, ["FI:571","FI:081"], "HSA limits for 2026",
-  "With a high-deductible health plan, 2026 HSA contribution limits are $4,400 (self-only) and $8,750 (family). HSAs are triple tax-advantaged: deductible in, tax-free growth, tax-free out for medical costs.",
+t(I, ["FI:571","FI:081"], "HSA limits for 2026 and 2027",
+  "With a high-deductible health plan, HSA contribution limits are $4,400 (self-only) and $8,750 (family) for 2026, rising to $4,500 and $9,000 for 2027. HSAs are triple tax-advantaged: deductible in, tax-free growth, tax-free out for medical costs.",
   "\"If you have a high-deductible plan, the HSA is the best tax deal in the code: money goes in tax-free and comes out tax-free for medical bills.\"",
-  "IRS Revenue Procedure 2025-19", "2026")
+  "IRS Rev. Proc. 2025-19 (2026) and Rev. Proc. 2026-24 (2027)", "Nov 2026")
 t(I, ["SM:075","RM:058"], "Four ways to handle risk",
   "Avoid it (don't do the activity), reduce/control it (safety steps, internal controls), transfer it (insurance, contracts), or retain/accept it (self-insure small losses).",
   "\"For each risk we'd decide: avoid it, reduce it, transfer it with insurance, or accept it. Here's which we chose and why.\"",
@@ -281,9 +283,9 @@ t(P, ["BL:148"], "Anti-money-laundering rules",
 # ---------------- Fraud and scams ----------------
 F = "Fraud & scams"
 t(F, ["FI:073","RM:042"], "Consumer fraud losses",
-  "Consumers reported losing about $12.5 billion to fraud in 2024, up about 25% from 2023, according to the FTC. Investment scams were the largest category.",
-  "\"Fraud is growing fast: the FTC counted $12.5 billion in reported losses in 2024, so scam protection belongs in every plan.\"",
-  "FTC Consumer Sentinel data (March 2025)")
+  "Consumers reported losing a record $15.9 billion to fraud in 2025, up about 25% from 2024, according to the FTC. Investment scams were the largest category at about $7.9 billion, nearly half the total.",
+  "\"Fraud is growing fast: the FTC counted a record $15.9 billion in reported losses in 2025, so scam protection belongs in every plan.\"",
+  "FTC Consumer Sentinel data (2026)", "2026")
 t(F, ["FI:073","EI:030"], "Older adults are top targets",
   "The FBI's Internet Crime Complaint Center reported that people 60 and older lost about $4.9 billion to online fraud in 2024.",
   "\"Older clients are targeted most, so we'd add a trusted contact to your account and a verbal password with the bank.\"",

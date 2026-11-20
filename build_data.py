@@ -70,8 +70,31 @@ for c in all_cases + all_drills:
 for c in all_cases:
     if len(c['pis']) != 5: errors.append(f"case {c['id']} has {len(c['pis'])} PIs (2026-27 TDM cases list 5)")
 
-talk = load('talking.py')['T']
+tns = load('talking.py')
+with open(os.path.join(SRC, 'talking_b.py'), encoding='utf-8') as f:
+    exec(f.read(), tns)   # more points + hub tags, run in the same namespace so ids continue
+talk = tns['T']
 deep = load('deepdives.py')['DD']
+
+# Finance Hub: topics -> sub-topics, each tied to PIs, with judge questions and model answers.
+hub = load('hub_a.py')['H'] + load('hub_b.py')['H'] + load('hub_c.py')['H']
+subids = collections.Counter(s['id'] for tp in hub for s in tp['subs'])
+for k, n in subids.items():
+    if n > 1: errors.append(f'duplicate hub sub-topic id {k}')
+if len({tp['id'] for tp in hub}) != len(hub): errors.append('duplicate hub topic id')
+for tp in hub:
+    for s in tp['subs']:
+        for p in s['pis']:
+            if p not in pis: errors.append(f"hub {s['id']} bad PI {p}")
+        if len(s['qs']) < 2: errors.append(f"hub {s['id']} needs at least 2 judge questions")
+        for fld in ('what', 'how', 'nums', 'real', 'traps', 'say'):
+            if not s[fld]: errors.append(f"hub {s['id']} missing {fld}")
+for x in talk:
+    if not x.get('subs'): errors.append(f"talking point {x['id']} has no hub sub-topic")
+    if not x.get('answers'): errors.append(f"talking point {x['id']} has no judge questions")
+    for sid in x.get('subs', []):
+        if sid not in subids: errors.append(f"talking point {x['id']} unknown hub sub-topic {sid}")
+if len({x['title'] for x in talk}) != len(talk): errors.append('duplicate talking point title')
 for x in deep:
     if x['pi'] not in pis: errors.append(f"deep dive bad PI {x['pi']}")
 if len({x['pi'] for x in deep}) != len(deep): errors.append('duplicate deep dive')
@@ -88,7 +111,12 @@ dump(qs, 'questions.json')
 dump({'cases': all_cases, 'drills': all_drills}, 'cases.json')
 dump(talk, 'talking.json')
 dump(deep, 'deepdives.json')
+dump(hub, 'hub.json')
 print(len(lessons), 'lessons', len(cards), 'cards', len(qs), 'questions', len(all_cases), 'cases', len(all_drills), 'drills', len(talk), 'talking points', len(deep), 'deep dives')
+nsub = sum(len(tp['subs']) for tp in hub)
+print('finance hub:', len(hub), 'topics', nsub, 'sub-topics', sum(len(s['qs']) for tp in hub for s in tp['subs']), 'judge questions')
+hubpis = {p for tp in hub for s in tp['subs'] for p in s['pis']}
+print('tier-2 PIs not in the hub:', [c for c, p in pis.items() if p['tier'] == 2 and c not in hubpis])
 print('questions by area:', collections.Counter(x['area'] for x in qs).most_common())
 t2 = [c for c, p in pis.items() if p['tier'] == 2]
 missing = [c for c in t2 if not any(x['pi'] == c for x in qs)]

@@ -112,7 +112,7 @@ V.sketch=()=>{
   return `<div class="wrap">${back('#charts','Charts')}${head('Sketch drill','Read the case summary, pick a chart, and sketch it on paper in 3 minutes, the way you would during prep.')}
   <div class="card stack"><span class="label">${esc(caseTitle(c))}</span><p class="small">${esc(c.situation)}</p><div class="chips">${c.pis.map(chipPI).join('')}</div>
     <p class="small"><strong>Suggested charts:</strong> ${sug.map(id=>`<a href="#charts-${id}">${esc(CHART[id].name)}</a>`).join(' · ')}</p>
-    <div class="bigtimer" id="bigtimer">${fmtTime(TIMER.endsAt&&TIMER.kind==='sketch'?TIMER.left():180)}</div>
+    <div class="bigtimer" id="bigtimer" data-idle="180">${fmtTime(TIMER.endsAt&&TIMER.kind==='sketch'?TIMER.left():180)}</div>
     <div class="row" style="justify-content:center"><button class="btn primary lg" id="timer-btn" data-a="sketchGo">${TIMER.endsAt&&TIMER.kind==='sketch'?icon('stop')+'Stop':icon('play')+'Start 3 minutes'}</button><button class="btn" data-a="sketchNew">${icon('shuffle')}Different case</button></div></div>
   <div class="card stack"><h2>Check your sketch</h2>${checks.map((t,i)=>`<label class="row small"><input type="checkbox" data-in="sketchChk" data-i="${i}" ${S0['c'+i]?'checked':''}> ${esc(t)}</label>`).join('')}
     <p class="small muted">Then compare with the example drawing on the chart's page. Practice each chart type at least once before regionals.</p></div></div>`;

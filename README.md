@@ -25,10 +25,11 @@ Then ask Claude to republish `ftdm-ace.html` to the same artifact URL.
 | Business cases + drills (original set) | `src/cases.py` |
 | Client-advising cases (modeled on 2024-26 district format) | `src/cases_b.py` |
 | Client-style 60-second drills | `src/drills_b.py` |
-| Real-world talking points with sources | `src/talking.py` (re-check items with an `asof` date before each competition) |
+| Finance Hub: 16 topics, 67 sub-topics, each with PIs, in-depth notes, key numbers with sources, real-world examples, traps and judge questions with model answers | `src/hub_a.py`, `src/hub_b.py`, `src/hub_c.py` |
+| Real-world talking points with sources, each tagged to Hub sub-topics and the judge questions it helps answer | `src/talking.py`, `src/talking_b.py` (re-check items with an `asof` date before each competition) |
 | Exam blueprint, scheduling, plan, sync | `app/core.js` |
 | PI deep dives with official sources | `src/deepdives.py` |
-| Screens (charts, deep dives, library in views3) | `app/views1.js`, `app/views2.js`, `app/views3.js`, `app/style.css` |
+| Screens (charts, deep dives, library in views3; Finance Hub in views4) | `app/views1.js` … `app/views4.js`, `app/style.css` |
 
 Blueprint: DECA Guide 2026-27, p. 39 (Finance: district / association / ICDC).
 Rubric and format: DECA Guide 2026-27 pp. 53-54 and the 2026 FTDM district event.

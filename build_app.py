@@ -14,10 +14,10 @@ def js(name):
 lessons = js('lessons.json'); cases = js('cases.json')
 data = {
     'pis': js('pis.json'), 'lessons': lessons['lessons'], 'cards': lessons['cards'],
-    'questions': js('questions.json'), 'cases': cases, 'talk': js('talking.json'), 'deep': js('deepdives.json'),
+    'questions': js('questions.json'), 'cases': cases, 'talk': js('talking.json'), 'deep': js('deepdives.json'), 'hub': js('hub.json'),
 }
 blob = json.dumps(data, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
-script = '\n'.join(rd('app', f) for f in ['core.js', 'views1.js', 'views2.js', 'views3.js', 'boot.js']).replace('</script', '<\\/script')
+script = '\n'.join(rd('app', f) for f in ['core.js', 'views1.js', 'views2.js', 'views3.js', 'views4.js', 'boot.js']).replace('</script', '<\\/script')
 
 page = f'''<title>FTDM Ace</title>
 <meta name="claude:viewport-fit-sides" content="cover">

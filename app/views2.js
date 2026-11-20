@@ -20,7 +20,7 @@ const TIMER = {
   tick(){ const l=this.left(); const pi=this.phaseIdx(); if(pi!==this.lastPhase){ if(this.lastPhase>=0) beep(880,.15,2); this.lastPhase=pi; }
     if(this.kind==='prep' && Math.abs(l-300)<0.13) beep(740,.15,1);
     this.paint(); if(l<=0){ clearInterval(this.iv); this.iv=null; keepAwake(false); beep(520,.35,3); this.onEnd(); } },
-  paint(){ const el=$('#bigtimer'); if(!el) return; const l=this.left(); el.textContent=fmtTime(this.endsAt?l:(this.total||0)); el.classList.toggle('low',this.endsAt&&l<60);
+  paint(){ const el=$('#bigtimer'); if(!el) return; const l=this.left(); el.textContent=fmtTime(this.endsAt?l:(+el.dataset.idle||this.total||0)); el.classList.toggle('low',this.endsAt&&l<60);
     const n=$('#needle'); if(n&&this.total) n.style.left=(100*(1-l/this.total))+'%'; const c=$('#cue'); if(c){ const i=this.phaseIdx(); c.textContent= this.kind==='present'? PRESENT_PHASES[Math.max(0,i)].cue : (this.kind==='prep'? (l>this.total*.8?'Read the case together. Underline the 5 PIs and what the client asked for.':l>this.total*.35?'Split the PIs. Each partner drafts explain + apply + example.':l>this.total*.1?'Write the solution and the opening line. Rehearse handoffs.':'Final run-through. Pick who answers which judge question.') : ''); }
     const sb=$('#timer-btn'); if(sb) sb.innerHTML= this.endsAt? icon('stop')+'Stop' : icon('play')+'Start'; },
   onEnd(){ const k=this.kind; this.endsAt=0; this.paint(); if(k==='prep'){ toast('Prep time is up. Start the presentation.'); } else if(k==='present'){ toast('Time. Score it with the official rubric.'); const cid=this.caseId; UI.caseStep[cid]='score'; if(route().name==='case') rerender(); }
@@ -81,7 +81,7 @@ function casePrep(c,half){
   const secs=half?600:1800; const running=TIMER.endsAt&&TIMER.kind==='prep'&&TIMER.caseId===c.id;
   const shared=CL.db&&!CL.writeBlocked;
   return `<div class="card stack"><div class="row between"><span class="label">Prep timer · ${half?10:30} minutes</span>${CL.room?`<span class="tiny faint">${onlinePeers().length?'Starts on your partner\'s screen too':'Partner timer syncs when they have the app open'}</span>`:''}</div>
-    <div class="bigtimer" id="bigtimer">${fmtTime(running?TIMER.left():secs)}</div><div class="cue small muted" id="cue" style="font-size:1rem">Press start when you open the case.</div>
+    <div class="bigtimer" id="bigtimer" data-idle="${secs}">${fmtTime(running?TIMER.left():secs)}</div><div class="cue small muted" id="cue" style="font-size:1rem">Press start when you open the case.</div>
     <div class="row" style="justify-content:center"><button class="btn primary lg" id="timer-btn" data-a="timer" data-k="prep" data-id="${c.id}" data-s="${secs}">${running?icon('stop')+'Stop':icon('play')+'Start'}</button></div></div>
   <div class="card stack"><div class="row between"><h2>Team planner</h2><span class="chip ${shared?'good':''}">${shared?'Shared live with your partner':'Saved on this device'}</span></div>
     <p class="small muted">For each PI: <strong>explain</strong> it in one sentence, <strong>apply</strong> it to this client, and <strong>prove</strong> it with a real-world fact or number. Assign each PI to a partner so both of you speak.</p>
@@ -103,7 +103,7 @@ function casePresent(c,half){
   const segs=PRESENT_PHASES.map((p,i)=>({w:((PRESENT_PHASES[i+1]?.at??900)-p.at)/9}));
   const cols=['var(--info)','var(--accent)','var(--warn)','var(--good)','var(--bad)'];
   return `<div class="card stack"><span class="label">Presentation · ${half?7:15} minutes including judge questions</span>
-    <div class="bigtimer" id="bigtimer">${fmtTime(running?TIMER.left():secs)}</div>
+    <div class="bigtimer" id="bigtimer" data-idle="${secs}">${fmtTime(running?TIMER.left():secs)}</div>
     <div class="phasebar">${segs.map((s,i)=>`<span style="width:${s.w}%;background:${cols[i]};opacity:.55"></span>`).join('')}<i class="needle" id="needle" style="left:0"></i></div>
     <div class="cue" id="cue">${PRESENT_PHASES[0].cue}</div>
     <div class="row" style="justify-content:center"><button class="btn primary lg" id="timer-btn" data-a="timer" data-k="present" data-id="${c.id}" data-s="${secs}">${running?icon('stop')+'Stop':icon('play')+'Start'}</button></div>
@@ -140,7 +140,7 @@ V.drills=()=>{
   return `<div class="wrap"><div class="row between"><button class="btn ghost sm" data-a="endDrill">${icon('back')}Drills</button><span class="chips">${dr.pis.map(chipPI).join('')}</span></div>
   <div class="card stack"><div class="row between"><span class="label">${st==='prep'?'Think · 60 seconds':st==='speak'?'Speak · 60 seconds':st==='review'?'Compare':'Ready'}</span>${CL.tts?`<button class="btn sm ghost" data-a="speakText" data-t="${esc(dr.scenario)}">${icon('vol')}Hear it</button>`:''}</div>
     <p style="font-size:1.08rem;font-weight:600">${esc(dr.scenario)}</p>
-    ${st!=='review'?`<div class="bigtimer" id="bigtimer">${fmtTime(TIMER.endsAt&&(TIMER.kind==='drillPrep'||TIMER.kind==='drillSpeak')?TIMER.left():60)}</div>`:''}
+    ${st!=='review'?`<div class="bigtimer" id="bigtimer" data-idle="60">${fmtTime(TIMER.endsAt&&(TIMER.kind==='drillPrep'||TIMER.kind==='drillSpeak')?TIMER.left():60)}</div>`:''}
     ${st==='ready'?`<button class="btn primary lg" data-a="drillGo">Start 60-second prep</button>`:''}
     ${st==='prep'?`<button class="btn lg" data-a="drillSkip">Skip to speaking</button>`:''}
     ${st==='speak'?`<p class="cue">Answer out loud now, as if the judge is in front of you.</p><button class="btn lg" data-a="drillDone">I'm done</button>`:''}
@@ -156,29 +156,38 @@ function drillPicker(){ const runs={}; (S.drillRuns||[]).forEach(r=>runs[r.id]=r
   <div class="stack">${D.cases.drills.map(d=>`<button class="list-link" data-a="openDrill" data-id="${d.id}"><span class="min0"><span class="small">${esc(d.scenario)}</span><br><span class="chips" style="margin-top:4px">${d.pis.map(chipPI).join('')}</span></span>${runs[d.id]?`<span class="chip ${runs[d.id].rating>=3?'good':'warn'}">${['','Missed','Shaky','Solid','Nailed'][runs[d.id].rating]||'Done'}</span>`:''}</button>`).join('')}</div></div>`; }
 
 /* ================= JUDGE QUESTIONS ================= */
-function allJudgeQs(){ const out=[]; allCases().forEach(c=>c.questions.forEach((q,i)=>{ const m=c.model.find(x=>x.startsWith('Judge Q'+(i+1))); out.push({cid:c.id,q,model:m?m.replace(/^Judge Q\d:\s*/,''):'',ctx:c.judge}); })); return out; }
+function allJudgeQs(){ const out=[]; allCases().forEach(c=>c.questions.forEach((q,i)=>{ const m=c.model.find(x=>x.startsWith('Judge Q'+(i+1))); out.push({cid:c.id,q,model:m?m.replace(/^Judge Q\d:\s*/,''):'',ctx:c.judge}); }));
+  HUB.forEach(tp=>tp.subs.forEach(s=>s.qs.forEach((x,i)=>out.push({hub:s.id,hi:i,topic:tp.id,q:x.q,model:x.a,ctx:'client or business owner'})))); return out; }
+// The pool the judge-question drill draws from: all, cases only, the Finance Hub, one hub topic or one sub-topic.
+function judgePool(){ const all=allJudgeQs(); const p=UI.jqPool||'all';
+  const f=p==='cases'?all.filter(x=>x.cid):p==='hub'?all.filter(x=>x.hub):p.startsWith('sub:')?all.filter(x=>x.hub===p.slice(4)):p.startsWith('topic:')?all.filter(x=>x.topic===p.slice(6)):all;
+  return f.length?f:all; }
 V.judge=()=>{
-  const all=allJudgeQs(); if(!UI.jq) UI.jq={i:Math.floor(Math.random()*all.length),stage:'ready'};
-  const J=UI.jq; const it=all[J.i%all.length];
+  const all=judgePool(); if(!UI.jq) UI.jq={i:Math.floor(Math.random()*all.length),stage:'ready'};
+  const J=UI.jq; const it=all[J.i%all.length]; const p=UI.jqPool||'all';
+  const srcs=[['all',`Everything (${allJudgeQs().length})`],['cases','From the practice cases'],['hub','Finance Hub (all topics)'],...HUB.map(tp=>['topic:'+tp.id,'Hub: '+tp.title])];
+  const subOpt=p.startsWith('sub:')&&HUBSUB[p.slice(4)]?`<option value="${esc(p)}" selected>Sub-topic: ${esc(HUBSUB[p.slice(4)].title)}</option>`:'';
+  const facts=it.hub?(TALK_BY_SUB[it.hub]||[]).slice(0,3):[];
   return `<div class="wrap">${back('#roleplay','Roleplay')}${head('Judge questions','Every FTDM judge asks the same two questions to every team, and each partner should answer at least one. Practice answering with Answer → Reason → Example → Tie back.')}
+  <div class="row"><select class="input" style="max-width:360px" data-in="jqPool" aria-label="Question pool">${subOpt}${srcs.map(([k,l])=>`<option value="${esc(k)}" ${k===p?'selected':''}>${esc(l)}</option>`).join('')}</select><span class="tiny faint">${all.length} questions in this pool</span><a class="btn sm" href="#cards-jq">${icon('cards')}Judge Q flashcards</a></div>
   <div class="card stack"><span class="label">The judge is the ${esc(it.ctx)}</span><p style="font-size:1.2rem;font-weight:650">"${esc(it.q)}"</p>
-    ${J.stage!=='review'?`<div class="bigtimer" id="bigtimer">${fmtTime(TIMER.endsAt&&TIMER.kind==='judgeQ'?TIMER.left():45)}</div>`:''}
+    ${J.stage!=='review'?`<div class="bigtimer" id="bigtimer" data-idle="45">${fmtTime(TIMER.endsAt&&TIMER.kind==='judgeQ'?TIMER.left():45)}</div>`:''}
     <div class="row" style="justify-content:center">${J.stage==='ready'?`<button class="btn primary lg" data-a="jqGo">${CL.tts?icon('vol')+'Ask me and start 45s':icon('play')+'Start 45 seconds'}</button>`:J.stage==='speak'?`<button class="btn lg" data-a="jqDone">Done answering</button>`:''}</div>
-    ${J.stage==='review'?`<div class="tp"><span class="label">A strong answer</span><div class="say">${esc(it.model||'Use the case model answer.')}</div><a class="small" href="#case-${it.cid}">Open the full case</a></div><button class="btn primary" data-a="jqNext">Next question</button>`:''}
+    ${J.stage==='review'?`<div class="tp"><span class="label">A strong answer</span><div class="say">${esc(it.model||'Use the case model answer.')}</div>${facts.length?`<span class="label">Facts you could drop in</span>${facts.map(t=>`<p class="small"><strong>${esc(t.title)}:</strong> ${esc(t.say)}</p>`).join('')}`:''}${it.hub?`<a class="small" href="#hub-${it.hub}">Read the Finance Hub notes: ${esc(HUBSUB[it.hub].title)}</a>`:`<a class="small" href="#case-${it.cid}">Open the full case</a>`}</div><button class="btn primary" data-a="jqNext">Next question</button>`:''}
   </div></div>`;
 };
 
 /* ================= TALKING POINTS ================= */
 V.talk=(tid)=>{
   if(tid&&TALK[tid]){ const t=TALK[tid]; if(!today().fact && todaysFact().id===tid){ today().fact=1; save(); }
-    return `<div class="wrap">${back('#talk','All talking points')}<div class="card tp"><span class="label">${esc(t.topic)}</span><h2>${esc(t.title)}</h2><p>${esc(t.fact)}</p><span class="label">Say it in the roleplay</span><div class="say">${esc(t.say)}</div><div class="chips">${t.pis.map(chipPI).join('')}</div><span class="src">Source: ${esc(t.source)}${t.asof?' · Time-sensitive, as of '+esc(t.asof)+'. Re-check before competing.':''}</span>
+    return `<div class="wrap">${back('#talk','All talking points')}<div class="card tp"><span class="label">${esc(t.topic)}</span><h2>${esc(t.title)}</h2><p>${esc(t.fact)}</p><span class="label">Say it in the roleplay</span><div class="say">${esc(t.say)}</div>${(t.answers||[]).length?`<span class="label">Judge questions this helps you answer</span><ul class="model small">${t.answers.map(a=>`<li>"${esc(a)}"</li>`).join('')}</ul>`:''}${(t.subs||[]).length?`<span class="label">Finance Hub</span><div class="chips">${t.subs.filter(id=>HUBSUB[id]).map(id=>`<a class="chip acc" href="#hub-${id}">${esc(HUBSUB[id].title)}</a>`).join('')}</div>`:''}<div class="chips">${t.pis.map(chipPI).join('')}</div><span class="src">Source: ${esc(t.source)}${t.asof?' · Time-sensitive, as of '+esc(t.asof)+'. Re-check before competing.':''}</span>
     <div class="row"><button class="btn sm" data-a="copy" data-t="${esc(t.say)}">${icon('copy')}Copy line</button><button class="btn sm ${S.talkStar[t.id]?'primary':''}" data-a="star" data-id="${t.id}">${icon('star')}${S.talkStar[t.id]?'Starred':'Star'}</button>${CL.tts?`<button class="btn sm" data-a="speakText" data-t="${esc(t.say)}">${icon('vol')}Hear it</button>`:''}</div></div></div>`; }
   const topics=[...new Set(D.talk.map(t=>t.topic))]; const f=UI.talkTopic||'all'; const q=(UI.talkq||'').toLowerCase(); const pi=UI.talkPI;
-  const list=D.talk.filter(t=>(f==='all'||(f==='star'?S.talkStar[t.id]:t.topic===f))&&(!pi||t.pis.includes(pi))&&(!q||(t.title+' '+t.fact+' '+t.say).toLowerCase().includes(q)));
+  const list=D.talk.filter(t=>(f==='all'||(f==='star'?S.talkStar[t.id]:t.topic===f))&&(!pi||t.pis.includes(pi))&&(!q||(t.title+' '+t.fact+' '+t.say+' '+(t.answers||[]).join(' ')).toLowerCase().includes(q)));
   return `<div class="wrap">${head('Talking points','Real companies, laws, numbers and events to make your roleplay answers concrete, like recommending automatic monthly investing into an S&P 500 index fund at a brokerage such as Fidelity. Every fact lists its source; time-sensitive numbers show a date.')}
   <div class="row"><input class="input" style="max-width:320px" placeholder="Search (e.g. FDIC, Roth, inflation)" value="${esc(UI.talkq||'')}" data-in="talkq">${pi?`<button class="chip on" data-a="talkFilterPI" data-pi="">${esc(pi)} ×</button>`:''}<a class="btn sm" href="#cards-facts">${icon('cards')}Study as flashcards</a></div>
   <div class="chips scrollx">${[['all','All'],['star','Starred'],...topics.map(t=>[t,t])].map(([k,l])=>`<button class="chip ${f===k?'on':''}" data-a="talkTopic" data-v="${esc(k)}">${esc(l)}</button>`).join('')}</div>
-  <div class="stack">${list.map(t=>`<div class="card tp"><div class="row between nowrap"><a href="#talk-${t.id}" style="color:inherit;text-decoration:none"><strong>${esc(t.title)}</strong></a><button class="iconbtn" style="${S.talkStar[t.id]?'color:var(--warn)':''}" data-a="star" data-id="${t.id}" aria-label="Star">${icon('star')}</button></div><p class="small">${esc(t.fact)}</p><div class="say">${esc(t.say)}</div><div class="row between"><span class="chips">${t.pis.map(chipPI).join('')}</span><span class="src">${esc(t.source)}${t.asof?' · as of '+esc(t.asof):''}</span></div></div>`).join('')||'<div class="empty">No talking points match.</div>'}</div></div>`;
+  <div class="stack">${list.map(t=>`<div class="card tp"><div class="row between nowrap"><a href="#talk-${t.id}" style="color:inherit;text-decoration:none"><strong>${esc(t.title)}</strong></a><button class="iconbtn" style="${S.talkStar[t.id]?'color:var(--warn)':''}" data-a="star" data-id="${t.id}" aria-label="Star">${icon('star')}</button></div><p class="small">${esc(t.fact)}</p><div class="say">${esc(t.say)}</div>${(t.answers||[]).length?`<span class="tiny muted">Helps answer: ${t.answers.map(a=>'"'+esc(a)+'"').join('  ')}</span>`:''}<div class="row between"><span class="chips">${t.pis.map(chipPI).join('')}${(t.subs||[]).filter(id=>HUBSUB[id]).slice(0,2).map(id=>`<a class="chip acc" href="#hub-${id}">${esc(HUBSUB[id].title)}</a>`).join('')}</span><span class="src">${esc(t.source)}${t.asof?' · as of '+esc(t.asof):''}</span></div></div>`).join('')||'<div class="empty">No talking points match.</div>'}</div></div>`;
 };
 
 /* ================= PLAYBOOK ================= */
@@ -323,9 +332,9 @@ const A = {
     runAI('ai-drill','Coach feedback',`${AI_ROLE}\n\nRoleplay prompt: ${dr.scenario}\nPIs: ${dr.pis.map(p=>p+' '+PI[p]?.pi).join('; ')}\nModel answer: ${dr.model}\n\nStudent's answer:\n"""${ans}"""\n\nGive: a score out of 10, what was strong, the single most important fix, one real-world fact or example they could add (with source), and a tighter 3-sentence version in their voice. Under 170 words.`,'quick'); },
   nextDrill(){ if(UI.drill&&!UI.drill.logged){ bump('drills'); save(); } A.randomDrill(); },
   endDrill(){ TIMER.stopLocal(true); UI.drill=null; render(); },
-  jqGo(){ const all=allJudgeQs(); const it=all[UI.jq.i%all.length]; UI.jq.stage='speak'; if(CL.tts) speak(it.q).then(()=>{ if(UI.jq.stage==='speak'){ TIMER.startLocal('judgeQ',null,45); } }); else TIMER.startLocal('judgeQ',null,45); render(); },
+  jqGo(){ const all=judgePool(); const it=all[UI.jq.i%all.length]; UI.jq.stage='speak'; if(CL.tts) speak(it.q).then(()=>{ if(UI.jq.stage==='speak'){ TIMER.startLocal('judgeQ',null,45); } }); else TIMER.startLocal('judgeQ',null,45); render(); },
   jqDone(){ TIMER.stopLocal(true); UI.jq.stage='review'; bump('judgeQs'); save(); render(); },
-  jqNext(){ const all=allJudgeQs(); UI.jq={i:Math.floor(Math.random()*all.length),stage:'ready'}; render(); },
+  jqNext(){ const all=judgePool(); UI.jq={i:Math.floor(Math.random()*all.length),stage:'ready'}; render(); },
   talkTopic(el){ UI.talkTopic=el.dataset.v; render(); },
   talkFilterPI(el){ UI.talkPI=el.dataset.pi||null; UI.talkTopic='all'; if(route().name!=='talk') location.hash='#talk'; else render(); },
   star(el){ const id=el.dataset.id; if(S.talkStar[id]) delete S.talkStar[id]; else S.talkStar[id]=Date.now(); save(); render(); },

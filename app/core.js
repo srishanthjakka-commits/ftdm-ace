@@ -30,6 +30,12 @@ const QS_BY_LESSON = {}; D.questions.forEach(q=>{(QS_BY_LESSON[q.lesson]=QS_BY_L
 // Talking points also study as flashcards ("facts" deck).
 const FACTCARDS = D.talk.map(t=>({id:'f-'+t.id,lesson:'facts',t:t.title,d:t.fact,x:t.say,src:t.source,tid:t.id}));
 FACTCARDS.forEach(c=>CARD[c.id]=c);
+// Finance Hub: topics -> sub-topics. Each sub-topic's judge questions also study as flashcards ("jq" deck).
+const HUB = D.hub||[]; const HUBT={}, HUBSUB={}; const HUB_ORDER=[];
+HUB.forEach(tp=>{ HUBT[tp.id]=tp; tp.subs.forEach(s=>{ s.topic=tp.id; HUBSUB[s.id]=s; HUB_ORDER.push(s.id); }); });
+const TALK_BY_SUB={}; D.talk.forEach(t=>(t.subs||[]).forEach(id=>(TALK_BY_SUB[id]=TALK_BY_SUB[id]||[]).push(t)));
+const JQCARDS=[]; HUB.forEach(tp=>tp.subs.forEach(s=>s.qs.forEach((q,i)=>JQCARDS.push({id:`j-${s.id}-${i}`,lesson:'jq',t:q.q,d:q.a,x:'',src:s.title,sub:s.id}))));
+JQCARDS.forEach(c=>CARD[c.id]=c);
 function allCases(){ return [...(S.gen||[]), ...(CL.gen||[]).filter(g=>!(S.gen||[]).some(x=>x.id===g.id)), ...D.cases.cases]; }
 function caseById(id){ return allCases().find(c=>c.id===id); }
 const DRILL = Object.fromEntries(D.cases.drills.map(d=>[d.id,d]));
@@ -56,7 +62,7 @@ function areaShort(a){ return AREA_SHORT[a]||a; }
 
 /* ---------- state ---------- */
 const KEY='ftdm-ace-v1';
-function blankState(){ return {v:1,created:Date.now(),cards:{},qs:{},lessons:{},daily:{},quizzes:[],mocks:[],caseRuns:[],drillRuns:[],notes:{},talkStar:{},gen:[],
+function blankState(){ return {v:1,created:Date.now(),cards:{},qs:{},lessons:{},daily:{},quizzes:[],mocks:[],caseRuns:[],drillRuns:[],notes:{},talkStar:{},gen:[],hubRead:{},
   settings:{t:0,examDate:'2026-12-07',regionalsDate:'2027-01-06',theme:'system',mockMinutes:60,blueprint:'district',newPerDay:0,voice:'buttery'}}; }
 let S = (()=>{ try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); const b=blankState(); return {...b,...s,settings:{...b.settings,...(s.settings||{})}}; } }catch(e){} return blankState(); })();
 let saveT=null;
@@ -82,7 +88,7 @@ function rateCard(id, g){ // g: 0 again, 1 hard, 2 good, 3 easy
 function cardPreview(id,g){ const p=S.cards[id]; const isNew=!p; let i=p?.i||0, e=p?.e||2.5;
   if(g===0) return '10m'; if(g===1) i=isNew||i<1?1:Math.max(1,Math.round(i*1.2)); else if(g===2) i=isNew||i<1?1:(i<3?3:Math.round(i*e)); else i=isNew||i<1?3:Math.round(Math.max(i,1)*e*1.3);
   i=Math.min(i,60); return i+'d'; }
-function deckCards(deck){ if(deck==='facts') return FACTCARDS; if(deck==='all'||!deck) return D.cards; return D.cards.filter(c=>c.lesson===deck); }
+function deckCards(deck){ if(deck==='facts') return FACTCARDS; if(deck==='jq') return JQCARDS; if(deck==='all'||!deck) return D.cards; return D.cards.filter(c=>c.lesson===deck); }
 function dueCards(list){ const now=Date.now(); return list.filter(c=>S.cards[c.id]&&S.cards[c.id].due<=now).sort((a,b)=>S.cards[a.id].due-S.cards[b.id].due); }
 function newCardsIn(list){ return list.filter(c=>!S.cards[c.id]); }
 function newPerDay(){ if(S.settings.newPerDay) return S.settings.newPerDay; const left=newCardsIn(D.cards).length; const d=daysUntil(S.settings.examDate); return d>2? clamp(Math.ceil(left/Math.max(1,d-2)),8,30) : 10; }
@@ -149,6 +155,13 @@ function phase(){ const d=daysUntil(S.settings.examDate), r=daysUntil(S.settings
 function nextLesson(){ return LESSON_ORDER.find(id=>!S.lessons[id]) || null; }
 function weakestLesson(){ let best=null,bv=2; LESSON_ORDER.forEach(id=>{ const qs=QS_BY_LESSON[id]||[]; let n=0,c=0; qs.forEach(q=>{const r=S.qs[q.id]; if(r){n+=r.n;c+=r.c}}); const v=(c+1)/(n+2); if(v<bv){bv=v;best=id;} }); return best; }
 function todaysFact(){ const k=dayKey(); return D.talk[hashStr(k)%D.talk.length]; }
+// Today's Hub sub-topic: the one picked today (so it stays put after you read it), else the first unread one,
+// with sub-topics whose PIs you're weakest on first.
+function nextHubSub(){ const t=today(); if(t.hubSub&&HUBSUB[t.hubSub]) return HUBSUB[t.hubSub];
+  const unread=HUB_ORDER.filter(id=>!(S.hubRead||{})[id]); if(!unread.length) return null;
+  const acc=id=>{ let n=0,c=0; HUBSUB[id].pis.forEach(p=>{ const st=piStats(p); n+=st.n; c+=st.c; }); return n?c/n:0.7; };
+  const pick=unread.slice().sort((a,b)=>acc(a)-acc(b)||HUB_ORDER.indexOf(a)-HUB_ORDER.indexOf(b))[0];
+  t.hubSub=pick; return HUBSUB[pick]; }
 function buildPlan(){
   const P=phase(), t=today(), steps=[];
   const cardsNeed = t.cardsNeed || (t.cardsNeed = clamp(dueCards(D.cards).length + newPerDay(), 10, 60));
@@ -160,6 +173,7 @@ function buildPlan(){
     steps.push({id:'smart',title:'Answer 20 smart-practice questions',sub:'Missed questions + weak areas, weighted to the blueprint',route:'#quiz-smart',have:Math.min(C('smart'),20),need:20});
     if(mockDay(P.d)) steps.push({id:'mock',title:'Take a full 100-question mock exam',sub:`Timed ${S.settings.mockMinutes} min, weighted to the ${S.settings.blueprint} blueprint`,route:'#mock',done:!!t.mock});
     else steps.push({id:'drill',title:'One 60-second speaking drill',sub:'Keeps roleplay skills warm while you cram',route:'#drills',have:Math.min(C('drills'),1),need:1});
+    { const hs=nextHubSub(); if(hs) steps.push({id:'hub',title:'Finance Hub: '+hs.title,sub:'Read it, then answer one of its judge questions out loud',route:'#hub-'+hs.id,done:!!t.hub}); }
     steps.push({id:'fact',title:'Learn today\'s real-world fact',sub:todaysFact().title,route:'#talk-'+todaysFact().id,done:!!t.fact});
   } else if(P.id==='examday'){
     steps.push({id:'checklist',title:'Read the exam-day game plan',sub:'Pacing, elimination, what to do when stuck',route:'#playbook-exam',done:!!t.checklist});
@@ -169,6 +183,7 @@ function buildPlan(){
     steps.push({id:'case',title: full?'Full case: 30-min prep + 15-min presentation':'Half case: 10-min prep + 7-min pitch',sub:'Do it with your partner if you can, then score it with the official rubric',route:'#roleplay',done:!!t.caseSim});
     steps.push({id:'drill',title:'Two 60-second speaking drills',sub:'Answer out loud, then compare to the model',route:'#drills',have:Math.min(C('drills'),2),need:2});
     steps.push({id:'judge',title:'Answer 3 judge questions out loud',sub:'45 seconds each',route:'#judge',have:Math.min(C('judgeQs'),3),need:3});
+    { const hs=nextHubSub(); if(hs) steps.push({id:'hub',title:'Finance Hub: '+hs.title,sub:'Read it, then answer one of its judge questions out loud',route:'#hub-'+hs.id,done:!!t.hub}); }
     steps.push({id:'facts',title:'Study 8 real-world fact cards',sub:'Numbers and examples that make judges remember you',route:'#cards-facts',have:Math.min(C('factCards'),8),need:8});
     steps.push({id:'smart',title:'Answer 10 mixed questions',sub:'Keeps PI knowledge sharp for the roleplay',route:'#quiz-smart10',have:Math.min(C('smart'),10),need:10});
     if(!full) steps.push({id:'sketch',title:'Sketch one chart in 3 minutes',sub:'A visual you could hand the judge',route:'#sketch',done:!!t.sketch});
@@ -206,6 +221,7 @@ function mergeState(a,b){ // merge remote b into local a without losing anything
   out.gen=uni(a.gen,b.gen,'id');
   out.notes=byLast(a.notes,b.notes);
   out.talkStar={...b.talkStar,...a.talkStar};
+  out.hubRead={...(b.hubRead||{}),...(a.hubRead||{})};
   out.settings=((b.settings?.t||0)>(a.settings?.t||0))?{...a.settings,...b.settings}:a.settings;
   return out; }
 function withTimeout(p,ms){ return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]); }
