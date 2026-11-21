@@ -36,7 +36,13 @@ Rubric and format: DECA Guide 2026-27 pp. 53-54 and the 2026 FTDM district event
 All questions and cases are original; nothing is copied from DECA or MBA Research.
 `data/exam_hits.json` counts how many of 11 past DECA Finance exams (2018-2026) tested each PI, taken from the
 answer-key PI codes (counts only, no exam text). The app uses it to weight practice and mocks toward frequently
-tested PIs. `src/questions_f.py` (Tier 2) and `src/questions_g.py` (frequently tested Tier 1) fill the gaps it showed.
+tested PIs. `src/questions_f.py` (Tier 2) and `src/questions_g.py` (frequently tested Tier 1) fill the gaps it showed;
+`src/questions_h.py` and `src/questions_i.py` bring every Tier 2 PI to 11 questions and cover every Tier 1 PI that
+appeared on those exams (981 questions total).
+
+Audit (Nov 2026): every question q1-q674 was checked and given a detailed explanation in `src/explain_*.py`, keyed by
+question id plus the start of its stem; `build_data.py` applies them and fails if a stem no longer matches or any
+question lacks a detailed explanation. Fixes made in the audit live in the same files (`q=` / `opts=` overrides).
 
 ## Partner sync
 

@@ -37,13 +37,34 @@ for L in lessons:
 
 qs = []
 seen = set()
-for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py', 'questions_f.py', 'questions_g.py']:
+for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py', 'questions_f.py', 'questions_g.py', 'questions_h.py', 'questions_i.py']:
     for pi, stem, opts, exp in load(f)['Q']:
         if pi not in pis: errors.append(f"bad PI {pi} in {stem[:40]}")
         if len(opts) != 4 or len(set(opts)) != 4: errors.append(f"options issue: {stem[:50]}")
         if stem in seen: errors.append(f"duplicate: {stem[:50]}")
         seen.add(stem)
         qs.append({'id': f"q{len(qs)+1}", 'pi': pi, 'area': area_of(pi) if pi in pis else '?', 'q': stem, 'o': opts, 'e': exp})
+
+# Audit results: detailed explanations (and any fixes) from src/explain_*.py, keyed by question id with the
+# start of the stem as a safety check. New questions written after the audit carry their own detailed explanation.
+import glob
+EXPL = {}
+for fp in sorted(glob.glob(os.path.join(SRC, 'explain_*.py'))):
+    EXPL.update(load(os.path.basename(fp))['E'])
+qby = {x['id']: x for x in qs}
+norm = lambda s: ' '.join(s.split())
+for qid, fx in EXPL.items():
+    x = qby.get(qid)
+    if not x: errors.append(f'explain: unknown question id {qid}'); continue
+    if not norm(x['q']).startswith(norm(fx['stem'])): errors.append(f"explain {qid}: stem doesn't match ({fx['stem'][:30]!r} vs {x['q'][:30]!r})")
+    x['e'] = fx['exp']
+    if fx['q']: x['q'] = fx['q']
+    if fx['opts']:
+        if len(fx['opts']) != 4 or len(set(fx['opts'])) != 4: errors.append(f'explain {qid}: needs 4 distinct options')
+        x['o'] = fx['opts']
+thin = [x['id'] for x in qs if x['id'] not in EXPL and len(x['e']) < 150]
+if thin: errors.append(f'{len(thin)} questions lack a detailed explanation, e.g. {thin[:8]}')
+if len({norm(x['q']) for x in qs}) != len(qs): errors.append('duplicate stems after audit fixes')
 
 # map each question to a lesson by PI (first lesson listing it), else by area
 pi2lesson = {}
