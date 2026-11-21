@@ -38,7 +38,7 @@ function renderChrome(){
   }
 }
 function head(title,sub='',right=''){ return `<div class="pagehead"><div class="row nowrap between"><h1>${title}</h1>${right}</div>${sub?`<p class="muted">${sub}</p>`:''}</div>`; }
-function chipPI(code){ const p=PI[code]; const has=typeof DEEP!=='undefined'&&DEEP[code]; return `<span class="chip pi${has?' link':''}" title="${esc(p?p.pi:'')}${has?' · open deep dive':''}"${has?` data-a="goPI" data-pi="${esc(code)}" role="link" tabindex="0"`:''}>${esc(code)}</span>`; }
+function chipPI(code){ const p=PI[code]; const has=typeof DEEP!=='undefined'&&DEEP[code]; const h=piHits(code); return `<span class="chip pi${has?' link':''}" title="${esc(p?p.pi:'')}${h?` · on ${h} of ${NEXAMS} past exams`:''}${has?' · open deep dive':''}"${has?` data-a="goPI" data-pi="${esc(code)}" role="link" tabindex="0"`:''}>${esc(code)}</span>`; }
 function bar(v,cls=''){ return `<div class="bar ${cls}"><i style="width:${clamp(Math.round(v),0,100)}%"></i></div>`; }
 function ring(p,label){ return `<div class="ring" style="--p:${clamp(p,0,100)}"><span>${label}</span></div>`; }
 function back(href,label){ return `<a href="${href}" class="btn ghost sm" style="align-self:flex-start">${icon('back')}${esc(label)}</a>`; }
@@ -155,6 +155,7 @@ V.exam=()=>{
   <div class="grid2">
     <div class="card stack"><h2>Practice</h2><p class="small muted">Instant feedback and an explanation after every answer.</p>
       <a class="list-link" href="#quiz-smart"><span><strong>Smart practice · 20</strong><br><span class="small muted">Missed questions come back, weak areas get more</span></span>${icon('play')}</a>
+      <a class="list-link" href="#quiz-hot"><span><strong>High-yield · 20</strong><br><span class="small muted">PIs tested on 8 or more of the ${NEXAMS} past DECA exams</span></span>${icon('play')}</a>
       <a class="list-link" href="#quiz-missed"><span><strong>Missed questions · ${missed}</strong><br><span class="small muted">Everything you got wrong last time</span></span>${icon('play')}</a>
       <a class="list-link" href="#quiz-unseen"><span><strong>New questions · ${unseen}</strong><br><span class="small muted">Ones you've never seen</span></span>${icon('play')}</a>
     </div>
@@ -163,18 +164,25 @@ V.exam=()=>{
       ${mocks.length?`${spark(mocks.map(m=>m.score))}<div class="stack-s">${mocks.slice(-4).reverse().map(m=>`<a class="row between small" href="#review-${m.t}" style="color:inherit"><span>${new Date(m.t).toLocaleDateString(undefined,{month:'short',day:'numeric'})} · ${fmtTime(m.dur)}</span><span class="mono"><strong>${m.score}</strong>/100</span></a>`).join('')}</div>`:'<p class="tiny faint">Your scores will chart here. Dashed line = 70.</p>'}
     </div>
   </div>
+  ${hotCard()}
   <div class="card stack"><h2>Practice by instructional area</h2><div class="stack-s">${AREAS.map(a=>{const st=areaStats(a); const [lab,cls]=status(st.acc,st.n); return `<a class="list-link" href="#quiz-area.${encodeURIComponent(a)}"><span class="min0"><strong>${esc(a)}</strong><br><span class="small muted">${BLUEPRINT.district[a]} on the exam · ${st.seen}/${st.pool} seen</span></span><span class="chip ${cls}">${st.n?pct(st.c,st.n)+'%':lab}</span></a>`}).join('')}</div></div>
   </div>`;
 };
+// The PIs DECA tested most often across the past exams, with your accuracy on each.
+function hotCard(){ if(!NEXAMS) return ''; const top=Object.keys(HITS).filter(c=>PI[c]).sort((a,b)=>HITS[b][0]-HITS[a][0]||HITS[b][1]-HITS[a][1]).slice(0,15);
+  return `<details class="card"><summary>Most-tested PIs on ${NEXAMS} past DECA exams</summary><p class="small muted">From the PI code behind every question on the 2018-2024 sample exams, the 2025 and 2026 district exams and two other 2026 exams. Finance-cluster (Tier 2) PIs were 50% of the 2026 district exam, and nearly every one appears on every exam.</p>
+  <div class="stack-s">${top.map(c=>{ const s=piStats(c); return `<a class="list-link" href="#pi-${c}"><span class="min0"><span class="mono small">${c}</span> <span class="small">${esc(PI[c].pi)}</span></span><span class="row nowrap"><span class="chip acc">${HITS[c][0]}/${NEXAMS} exams</span>${s.n?`<span class="chip ${s.c/s.n>=.8?'good':s.c/s.n>=.65?'warn':'bad'}">${pct(s.c,s.n)}%</span>`:''}</span></a>`; }).join('')}</div>
+  <a class="btn primary" href="#quiz-hot">Practice the high-yield PIs</a></details>`; }
 function startQuiz(spec){
   let items=[], title='Practice', mode=spec;
   if(spec==='smart'){ items=smartSet(20); title='Smart practice'; }
   else if(spec==='smart10'){ items=smartSet(10); title='Mixed practice'; mode='smart'; }
   else if(spec==='missed'){ items=shuffle(D.questions.filter(q=>S.qs[q.id]?.w)).slice(0,25); title='Missed questions'; }
   else if(spec==='unseen'){ items=pick(D.questions.filter(q=>!S.qs[q.id]),20); title='New questions'; }
+  else if(spec==='hot'){ items=smartSet(20,{pool:D.questions.filter(q=>piHits(q.pi)>=8)}); title='High-yield: most-tested PIs'; mode='smart'; }
   else if(spec.startsWith('lesson.')){ const id=spec.slice(7); items=smartSet(5,{pool:QS_BY_LESSON[id]||[]}); title='Check: '+(LESSON[id]?.title||''); }
   else if(spec.startsWith('area.')){ const a=decodeURIComponent(spec.slice(5)); items=smartSet(15,{pool:QS_BY_AREA[a]||[]}); title=a; }
-  else if(spec.startsWith('pis.')){ const set=spec.slice(4).split(','); items=shuffle(D.questions.filter(q=>set.includes(q.pi))).slice(0,15); title='Weak PIs'; }
+  else if(spec.startsWith('pis.')){ const set=spec.slice(4).split(','); items=shuffle(D.questions.filter(q=>set.includes(q.pi))).slice(0,15); title=set.length===1?set[0]+' practice':'PI practice'; }
   else if(spec.startsWith('ids.')){ items=spec.slice(4).split(',').map(id=>QBY[id]).filter(Boolean); title=UI.quizTitle||'Challenge'; }
   UI.quiz={spec,mode,title,items:items.map(q=>q.id),i:0,ans:{},seed:Date.now()%100000,t:Date.now()};
 }

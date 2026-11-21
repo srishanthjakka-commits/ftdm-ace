@@ -37,7 +37,7 @@ for L in lessons:
 
 qs = []
 seen = set()
-for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py']:
+for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py', 'questions_f.py', 'questions_g.py']:
     for pi, stem, opts, exp in load(f)['Q']:
         if pi not in pis: errors.append(f"bad PI {pi} in {stem[:40]}")
         if len(opts) != 4 or len(set(opts)) != 4: errors.append(f"options issue: {stem[:50]}")

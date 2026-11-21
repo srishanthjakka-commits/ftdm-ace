@@ -39,6 +39,12 @@ JQCARDS.forEach(c=>CARD[c.id]=c);
 function allCases(){ return [...(S.gen||[]), ...(CL.gen||[]).filter(g=>!(S.gen||[]).some(x=>x.id===g.id)), ...D.cases.cases]; }
 function caseById(id){ return allCases().find(c=>c.id===id); }
 const DRILL = Object.fromEntries(D.cases.drills.map(d=>[d.id,d]));
+// How many of the past DECA Finance exams (2018-2026) tested each PI. Used to weight practice and mocks.
+const HITS=(D.hits&&D.hits.pis)||{}; const NEXAMS=(D.hits&&D.hits.meta&&D.hits.meta.exams)||0;
+function piHits(c){ return (HITS[c]||[0])[0]; }
+function hitW(q){ return 1+piHits(q.pi)/6; }
+// Random order that favors questions on frequently tested PIs (weighted shuffle).
+function weightedOrder(arr){ return arr.map(x=>[Math.pow(Math.random(),1/hitW(x)),x]).sort((a,b)=>b[0]-a[0]).map(p=>p[1]); }
 
 /* ---------- utils ---------- */
 const $ = (s,el=document)=>el.querySelector(s);
@@ -129,7 +135,7 @@ function smartSet(n, opts={}){
     for(const a of AREAS){ r-=weights[a]; if(r<=0){area=a;break;} }
     const cands=(QS_BY_AREA[area]||[]).filter(q=>pool.includes(q)&&!chosen.has(q.id));
     if(!cands.length){ weights[area]=0; if(Object.values(weights).every(x=>!x)) break; continue; }
-    const unseen=cands.filter(q=>!S.qs[q.id]); add(pick(unseen.length&&Math.random()<.7?unseen:cands,1)[0]);
+    const unseen=cands.filter(q=>!S.qs[q.id]); add(weightedOrder(unseen.length&&Math.random()<.7?unseen:cands)[0]);
   }
   shuffle(pool).forEach(add);
   return shuffle(out);
@@ -138,7 +144,7 @@ function mockSet(bp=S.settings.blueprint){
   const w=BLUEPRINT[bp]; const usedInMocks=new Set((S.mocks||[]).slice(-3).flatMap(m=>(m.items||[]).map(x=>x.q)));
   let out=[];
   AREAS.forEach(a=>{ const need=w[a]||0; if(!need) return; const pool=QS_BY_AREA[a]||[];
-    const fresh=shuffle(pool.filter(q=>!usedInMocks.has(q.id))); const old=shuffle(pool.filter(q=>usedInMocks.has(q.id)));
+    const fresh=weightedOrder(pool.filter(q=>!usedInMocks.has(q.id))); const old=weightedOrder(pool.filter(q=>usedInMocks.has(q.id)));
     out.push(...[...fresh,...old].slice(0,need)); });
   if(out.length<100){ const have=new Set(out.map(q=>q.id)); out.push(...shuffle((QS_BY_AREA['Financial Analysis']||[]).filter(q=>!have.has(q.id))).slice(0,100-out.length)); }
   return shuffle(out).slice(0,100);

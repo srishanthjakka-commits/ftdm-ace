@@ -34,6 +34,9 @@ Then ask Claude to republish `ftdm-ace.html` to the same artifact URL.
 Blueprint: DECA Guide 2026-27, p. 39 (Finance: district / association / ICDC).
 Rubric and format: DECA Guide 2026-27 pp. 53-54 and the 2026 FTDM district event.
 All questions and cases are original; nothing is copied from DECA or MBA Research.
+`data/exam_hits.json` counts how many of 11 past DECA Finance exams (2018-2026) tested each PI, taken from the
+answer-key PI codes (counts only, no exam text). The app uses it to weight practice and mocks toward frequently
+tested PIs. `src/questions_f.py` (Tier 2) and `src/questions_g.py` (frequently tested Tier 1) fill the gaps it showed.
 
 ## Partner sync
 
