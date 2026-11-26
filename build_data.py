@@ -77,10 +77,11 @@ for x in qs:
 
 cs = load('cases.py')
 cb = load('cases_b.py')
+cc = load('cases_c.py')
 db = load('drills_b.py')
 for c in cs['CASES']: c.setdefault('style', 'business')
 for d in cs['DRILLS']: d.setdefault('style', 'business')
-all_cases = cb['CASES'] + cs['CASES']
+all_cases = cb['CASES'] + cc['CASES'] + cs['CASES']
 all_drills = db['DRILLS'] + cs['DRILLS']
 ids = collections.Counter(c['id'] for c in all_cases + all_drills)
 for k, n in ids.items():
