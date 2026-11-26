@@ -102,7 +102,7 @@ function cardCounts(list=D.cards){ let nw=0,lr=0,ms=0; list.forEach(c=>{const s=
 
 /* ---------- questions: results + review scheduling ---------- */
 function recordAnswer(qid, correct, opts={}){
-  const now=Date.now(); const p=S.qs[qid]||{n:0,c:0,s:0};
+  const now=Date.now(); const isNew=!S.qs[qid]; const p=S.qs[qid]||{n:0,c:0,s:0}; if(isNew) bump('newQs');
   p.n++; if(correct){p.c++; p.s=(p.s||0)+1;} else p.s=0;
   p.w = correct?0:1; p.last=now;
   const ladder=[1,3,7,14,30];
@@ -122,29 +122,41 @@ function weakPIs(k=8){ const m={}; D.questions.forEach(q=>{const r=S.qs[q.id]; i
   return Object.entries(m).filter(([,x])=>x.n>=2).map(([pi,x])=>({pi,acc:x.c/x.n,n:x.n})).sort((a,b)=>a.acc-b.acc).slice(0,k); }
 
 // Smart practice: missed and due first, then weak areas weighted by blueprint, then unseen questions.
+// Smart practice: mostly never-seen questions every day, plus a few spaced reviews.
+// 1) Up to 30% reviews that are due (missed first), skipping anything answered in the last 12 hours, so a set
+//    never replays what you just did. 2) Fill with never-seen questions, weighted to the blueprint, your weak
+//    areas and how often DECA tests each PI. 3) Only when unseen questions run out: seen ones, oldest first.
 function smartSet(n, opts={}){
-  const now=Date.now(); const pool=opts.pool||D.questions; const chosen=new Set(); const out=[];
-  const add=q=>{ if(out.length<n && !chosen.has(q.id)){chosen.add(q.id); out.push(q);} };
-  shuffle(pool.filter(q=>{const r=S.qs[q.id]; return r && r.w && r.due<=now;})).slice(0,Math.ceil(n*.35)).forEach(add);
-  shuffle(pool.filter(q=>{const r=S.qs[q.id]; return r && !r.w && r.due<=now;})).slice(0,Math.ceil(n*.2)).forEach(add);
+  const now=Date.now(); const pool=opts.pool||D.questions; const inPool=new Set(pool.map(q=>q.id)); const chosen=new Set(); const out=[];
+  const add=q=>{ if(q && out.length<n && !chosen.has(q.id)){chosen.add(q.id); out.push(q);} };
+  const recent=q=>{ const r=S.qs[q.id]; return !!r && now-(r.last||0) < 12*3600000; };
+  const dueMissed=shuffle(pool.filter(q=>{const r=S.qs[q.id]; return r && r.w && r.due<=now && !recent(q);}));
+  const dueRight=shuffle(pool.filter(q=>{const r=S.qs[q.id]; return r && !r.w && r.due<=now && !recent(q);}));
+  const reviewCap=Math.round(n*(opts.reviewShare==null?0.3:opts.reviewShare));
+  [...dueMissed,...dueRight].slice(0,reviewCap).forEach(add);
   const bp=BLUEPRINT[S.settings.blueprint]; const weights={};
   AREAS.forEach(a=>{ const st=areaStats(a); weights[a]=(bp[a]||0.5)*(1.25-st.est); });
   let guard=0;
-  while(out.length<n && guard++<500){
-    const tot=Object.values(weights).reduce((s,x)=>s+x,0); let r=Math.random()*tot, area=AREAS[0];
+  while(out.length<n && guard++<800){
+    const tot=Object.values(weights).reduce((s,x)=>s+x,0); if(tot<=0) break;
+    let r=Math.random()*tot, area=AREAS[0];
     for(const a of AREAS){ r-=weights[a]; if(r<=0){area=a;break;} }
-    const cands=(QS_BY_AREA[area]||[]).filter(q=>pool.includes(q)&&!chosen.has(q.id));
-    if(!cands.length){ weights[area]=0; if(Object.values(weights).every(x=>!x)) break; continue; }
-    const unseen=cands.filter(q=>!S.qs[q.id]); add(weightedOrder(unseen.length&&Math.random()<.7?unseen:cands)[0]);
+    const cands=(QS_BY_AREA[area]||[]).filter(q=>inPool.has(q.id)&&!chosen.has(q.id)&&!S.qs[q.id]);
+    if(!cands.length){ weights[area]=0; continue; }
+    add(weightedOrder(cands)[0]);
   }
+  pool.filter(q=>!chosen.has(q.id)&&!recent(q)).sort((a,b)=>(S.qs[a.id]?.last||0)-(S.qs[b.id]?.last||0)).forEach(add);
   shuffle(pool).forEach(add);
   return shuffle(out);
 }
+// How many never-seen questions to aim for each day so you see the whole bank before the exam.
+function unseenCount(){ return D.questions.filter(q=>!S.qs[q.id]).length; }
+function newQTarget(){ const left=unseenCount()+(today().newQs||0); const d=daysUntil(S.settings.examDate); return left? clamp(Math.ceil(left/Math.max(1,d-1)),20,80) : 0; }
 function mockSet(bp=S.settings.blueprint){
   const w=BLUEPRINT[bp]; const usedInMocks=new Set((S.mocks||[]).slice(-3).flatMap(m=>(m.items||[]).map(x=>x.q)));
   let out=[];
   AREAS.forEach(a=>{ const need=w[a]||0; if(!need) return; const pool=QS_BY_AREA[a]||[];
-    const fresh=weightedOrder(pool.filter(q=>!usedInMocks.has(q.id))); const old=weightedOrder(pool.filter(q=>usedInMocks.has(q.id)));
+    const fresh=[...weightedOrder(pool.filter(q=>!usedInMocks.has(q.id)&&!S.qs[q.id])),...weightedOrder(pool.filter(q=>!usedInMocks.has(q.id)&&S.qs[q.id]))]; const old=weightedOrder(pool.filter(q=>usedInMocks.has(q.id)));
     out.push(...[...fresh,...old].slice(0,need)); });
   if(out.length<100){ const have=new Set(out.map(q=>q.id)); out.push(...shuffle((QS_BY_AREA['Financial Analysis']||[]).filter(q=>!have.has(q.id))).slice(0,100-out.length)); }
   return shuffle(out).slice(0,100);
@@ -176,7 +188,8 @@ function buildPlan(){
     steps.push({id:'cards',title:`Review ${cardsNeed} flashcards`,sub:'Spaced repetition: due cards first, then new ones',route:'#cards',have:Math.min(C('cards'),cardsNeed),need:cardsNeed});
     const nl=nextLesson(), lid=nl||weakestLesson();
     steps.push({id:'lesson',title:nl?`Lesson: ${LESSON[lid].title}`:`Re-study: ${LESSON[lid].title}`,sub:nl?`${LESSON[lid].cards.length} key ideas, then a 5-question check`:'Your weakest lesson by quiz accuracy',route:'#lesson-'+lid,done:!!t.lesson});
-    steps.push({id:'smart',title:'Answer 20 smart-practice questions',sub:'Missed questions + weak areas, weighted to the blueprint',route:'#quiz-smart',have:Math.min(C('smart'),20),need:20});
+    steps.push({id:'smart',title:'Answer 20 smart-practice questions',sub:'Mostly never-seen questions, plus a few missed ones from earlier days',route:'#quiz-smart',have:Math.min(C('smart'),20),need:20});
+    { const nt=newQTarget(); if(nt) steps.push({id:'newq',title:`See ${nt} new questions today`,sub:`${unseenCount()} you haven't seen yet. This pace covers the whole bank before ${fmtDate(S.settings.examDate)}; any quiz or mock counts`,route:'#quiz-unseen',have:Math.min(C('newQs'),nt),need:nt}); }
     if(mockDay(P.d)) steps.push({id:'mock',title:'Take a full 100-question mock exam',sub:`Timed ${S.settings.mockMinutes} min, weighted to the ${S.settings.blueprint} blueprint`,route:'#mock',done:!!t.mock});
     else steps.push({id:'drill',title:'One 60-second speaking drill',sub:'Keeps roleplay skills warm while you cram',route:'#drills',have:Math.min(C('drills'),1),need:1});
     { const hs=nextHubSub(); if(hs) steps.push({id:'hub',title:'Finance Hub: '+hs.title,sub:'Read it, then answer one of its judge questions out loud',route:'#hub-'+hs.id,done:!!t.hub}); }

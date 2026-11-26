@@ -154,10 +154,10 @@ V.exam=()=>{
   return `<div class="wrap">${head('Exam','100 questions, Finance cluster, weighted to the 2026-27 district blueprint. Practice short sets daily; take full mocks under time pressure.')}
   <div class="grid2">
     <div class="card stack"><h2>Practice</h2><p class="small muted">Instant feedback and an explanation after every answer.</p>
-      <a class="list-link" href="#quiz-smart"><span><strong>Smart practice · 20</strong><br><span class="small muted">Missed questions come back, weak areas get more</span></span>${icon('play')}</a>
+      <a class="list-link" href="#quiz-smart"><span><strong>Smart practice · 20</strong><br><span class="small muted">At least 14 never-seen questions every set, plus missed ones from earlier days</span></span>${icon('play')}</a>
       <a class="list-link" href="#quiz-hot"><span><strong>High-yield · 20</strong><br><span class="small muted">PIs tested on 8 or more of the ${NEXAMS} past DECA exams</span></span>${icon('play')}</a>
       <a class="list-link" href="#quiz-missed"><span><strong>Missed questions · ${missed}</strong><br><span class="small muted">Everything you got wrong last time</span></span>${icon('play')}</a>
-      <a class="list-link" href="#quiz-unseen"><span><strong>New questions · ${unseen}</strong><br><span class="small muted">Ones you've never seen</span></span>${icon('play')}</a>
+      <a class="list-link" href="#quiz-unseen"><span><strong>New questions · ${unseen}</strong><br><span class="small muted">Only questions you've never seen · ${today().newQs||0} new today</span></span>${icon('play')}</a>
     </div>
     <div class="card stack"><h2>Full mock exam</h2><p class="small muted">${S.settings.mockMinutes} minutes, 100 questions in DECA's proportions: Financial Analysis ${BLUEPRINT[S.settings.blueprint]['Financial Analysis']}, Professional Development ${BLUEPRINT[S.settings.blueprint]['Professional Development']}, Emotional Intelligence ${BLUEPRINT[S.settings.blueprint]['Emotional Intelligence']}, Financial-Information Management ${BLUEPRINT[S.settings.blueprint]['Financial-Information Management']}…</p>
       ${UI.mock&&!UI.mock.submitted?`<a class="btn primary lg" href="#mock">Resume mock (${Object.keys(UI.mock.answers).length}/100)</a>`:`<a class="btn primary lg" href="#mock">Start a mock exam</a>`}
@@ -178,7 +178,7 @@ function startQuiz(spec){
   if(spec==='smart'){ items=smartSet(20); title='Smart practice'; }
   else if(spec==='smart10'){ items=smartSet(10); title='Mixed practice'; mode='smart'; }
   else if(spec==='missed'){ items=shuffle(D.questions.filter(q=>S.qs[q.id]?.w)).slice(0,25); title='Missed questions'; }
-  else if(spec==='unseen'){ items=pick(D.questions.filter(q=>!S.qs[q.id]),20); title='New questions'; }
+  else if(spec==='unseen'){ items=smartSet(20,{pool:D.questions.filter(q=>!S.qs[q.id]),reviewShare:0}); title='New questions'; }
   else if(spec==='hot'){ items=smartSet(20,{pool:D.questions.filter(q=>piHits(q.pi)>=8)}); title='High-yield: most-tested PIs'; mode='smart'; }
   else if(spec.startsWith('lesson.')){ const id=spec.slice(7); items=smartSet(5,{pool:QS_BY_LESSON[id]||[]}); title='Check: '+(LESSON[id]?.title||''); }
   else if(spec.startsWith('area.')){ const a=decodeURIComponent(spec.slice(5)); items=smartSet(15,{pool:QS_BY_AREA[a]||[]}); title=a; }
