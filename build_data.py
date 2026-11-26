@@ -37,7 +37,7 @@ for L in lessons:
 
 qs = []
 seen = set()
-for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py', 'questions_f.py', 'questions_g.py', 'questions_h.py', 'questions_i.py']:
+for f in ['questions_a.py', 'questions_b.py', 'questions_c.py', 'questions_d.py', 'questions_e.py', 'questions_f.py', 'questions_g.py', 'questions_h.py', 'questions_i.py', 'questions_j.py']:
     for pi, stem, opts, exp in load(f)['Q']:
         if pi not in pis: errors.append(f"bad PI {pi} in {stem[:40]}")
         if len(opts) != 4 or len(set(opts)) != 4: errors.append(f"options issue: {stem[:50]}")
@@ -78,11 +78,13 @@ for x in qs:
 cs = load('cases.py')
 cb = load('cases_b.py')
 cc = load('cases_c.py')
+cd = load('cases_d.py')   # Economics-focused cases for the Econ Lab (regionals)
 db = load('drills_b.py')
+dc = load('drills_c.py')   # Economics drills
 for c in cs['CASES']: c.setdefault('style', 'business')
 for d in cs['DRILLS']: d.setdefault('style', 'business')
-all_cases = cb['CASES'] + cc['CASES'] + cs['CASES']
-all_drills = db['DRILLS'] + cs['DRILLS']
+all_cases = cd['CASES'] + cb['CASES'] + cc['CASES'] + cs['CASES']
+all_drills = dc['DRILLS'] + db['DRILLS'] + cs['DRILLS']
 ids = collections.Counter(c['id'] for c in all_cases + all_drills)
 for k, n in ids.items():
     if n > 1: errors.append(f"duplicate case/drill id {k}")
@@ -95,6 +97,8 @@ for c in all_cases:
 tns = load('talking.py')
 with open(os.path.join(SRC, 'talking_b.py'), encoding='utf-8') as f:
     exec(f.read(), tns)   # more points + hub tags, run in the same namespace so ids continue
+with open(os.path.join(SRC, 'talking_c.py'), encoding='utf-8') as f:
+    exec(f.read(), tns)   # Economics talking points for the Econ Lab
 talk = tns['T']
 deep = load('deepdives.py')['DD']
 
@@ -126,8 +130,38 @@ for x in talk:
     for p in x['pis']:
         if p not in pis: errors.append(f"talking point {x['id']} bad PI {p}")
 
+# Econ Lab (regionals): every Economics PI on the list gets a lesson, flashcards and judge questions.
+ens = load('econ_a.py')
+for fn in ('econ_b.py', 'econ_c.py'):
+    with open(os.path.join(SRC, fn), encoding='utf-8') as f: exec(f.read(), ens)
+units, EP = ens['UNITS'], ens['P']
+ec_all = [c for c, p in pis.items() if p['area'] == 'Economics']
+in_units = [c for u in units for c in u['pis']]
+if sorted(in_units) != sorted(ec_all): errors.append(f'econ units must list every Economics PI once: missing {set(ec_all)-set(in_units)}')
+econ_pis = []
+for u in units:
+    for c in u['pis']:
+        x = EP.get(c)
+        if not x: errors.append(f'econ: no lesson for {c}'); continue
+        for fld in ('plain', 'key', 'fin', 'ex', 'trap', 'say'):
+            if not x[fld]: errors.append(f'econ {c} missing {fld}')
+        if len(x['qs']) < 2: errors.append(f'econ {c} needs 2 judge questions')
+        if len(x['cards']) < 3: errors.append(f'econ {c} needs 3 flashcards')
+        for qq in x['qs']:
+            if len(qq['a']) < 200: errors.append(f"econ {c} judge answer too short: {qq['q'][:40]}")
+        econ_pis.append(dict(x, unit=u['id']))
+for c in ec_all:
+    n = sum(1 for x in qs if x['pi'] == c)
+    if n < 3: errors.append(f'econ {c} has only {n} exam questions (need 3)')
+for c in cd['CASES'] + dc['DRILLS']:
+    if sum(p.startswith('EC:') for p in c['pis']) < 2: errors.append(f"econ case/drill {c['id']} needs 2+ Economics PIs")
+for c in cd['CASES']:
+    if len(c['questions']) != 2 or not all(any(m.startswith(f'Judge Q{i}:') for m in c['model']) for i in (1, 2)):
+        errors.append(f"econ case {c['id']} needs 2 judge questions with model answers")
+
 if errors:
     print('\n'.join(errors)); sys.exit(1)
+dump({'units': units, 'pis': econ_pis}, 'econ.json')
 dump({'lessons': lessons, 'cards': cards}, 'lessons.json')
 dump(qs, 'questions.json')
 dump({'cases': all_cases, 'drills': all_drills}, 'cases.json')
@@ -136,6 +170,7 @@ dump(deep, 'deepdives.json')
 dump(hub, 'hub.json')
 print(len(lessons), 'lessons', len(cards), 'cards', len(qs), 'questions', len(all_cases), 'cases', len(all_drills), 'drills', len(talk), 'talking points', len(deep), 'deep dives')
 nsub = sum(len(tp['subs']) for tp in hub)
+print('econ lab:', len(units), 'units', len(econ_pis), 'PIs', sum(len(x['cards']) for x in econ_pis), 'cards', sum(len(x['qs']) for x in econ_pis), 'judge questions', len(cd['CASES']), 'econ cases', len(dc['DRILLS']), 'econ drills', sum(1 for x in talk if x['topic'] == 'Economics'), 'econ talking points')
 print('finance hub:', len(hub), 'topics', nsub, 'sub-topics', sum(len(s['qs']) for tp in hub for s in tp['subs']), 'judge questions')
 hubpis = {p for tp in hub for s in tp['subs'] for p in s['pis']}
 print('tier-2 PIs not in the hub:', [c for c, p in pis.items() if p['tier'] == 2 and c not in hubpis])

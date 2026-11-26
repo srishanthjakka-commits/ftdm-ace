@@ -32,6 +32,7 @@ V.roleplay=()=>{
   const f=UI.caseFilter||'all'; const cases=allCases().filter(c=>f==='all'||(f==='client'?c.style==='client':f==='ai'?c.style==='ai':c.style!=='client'&&c.style!=='ai'));
   const last={}; (S.caseRuns||[]).forEach(r=>{ if(r.total!=null) last[r.caseId]=r; });
   return `<div class="wrap">${head('Roleplay','Practice the way FTDM is judged: 30 minutes to prep with your partner, 15 minutes with the judge, scored out of 100 on five PIs, a unique/practical/effective solution, three career competencies and overall impression.')}
+  <a class="card row between" href="#econ-cases" style="text-decoration:none;color:inherit;border-color:var(--accent)"><span class="min0"><span class="label">Regionals focus: Economics</span><br><strong>${econCases().length} econ cases, ${econDrills().length} drills and ${ECONJQ.length} judge questions in the Econ Lab</strong></span>${icon('econ')}</a>
   <div class="grid3">
     <a class="card stack-s" href="#drills" style="text-decoration:none;color:inherit"><span class="label">Quick reps</span><strong>60-second drills</strong><span class="small muted">${D.cases.drills.length} prompts · prep 1 min, speak 1 min</span></a>
     <a class="card stack-s" href="#judge" style="text-decoration:none;color:inherit"><span class="label">Pressure test</span><strong>Judge questions</strong><span class="small muted">Hear a question, answer in 45 seconds</span></a>
@@ -157,23 +158,24 @@ function drillPicker(){ const runs={}; (S.drillRuns||[]).forEach(r=>runs[r.id]=r
 
 /* ================= JUDGE QUESTIONS ================= */
 function allJudgeQs(){ const out=[]; allCases().forEach(c=>c.questions.forEach((q,i)=>{ const m=c.model.find(x=>x.startsWith('Judge Q'+(i+1))); out.push({cid:c.id,q,model:m?m.replace(/^Judge Q\d:\s*/,''):'',ctx:c.judge}); }));
-  HUB.forEach(tp=>tp.subs.forEach(s=>s.qs.forEach((x,i)=>out.push({hub:s.id,hi:i,topic:tp.id,q:x.q,model:x.a,ctx:'client or business owner'})))); return out; }
+  HUB.forEach(tp=>tp.subs.forEach(s=>s.qs.forEach((x,i)=>out.push({hub:s.id,hi:i,topic:tp.id,q:x.q,model:x.a,ctx:'client or business owner'}))));
+  ECON.pis.forEach(x=>x.qs.forEach((q,i)=>out.push({econ:x.code,ei:i,unit:x.unit,q:q.q,model:q.a,ctx:'client or business owner'}))); return out; }
 // The pool the judge-question drill draws from: all, cases only, the Finance Hub, one hub topic or one sub-topic.
 function judgePool(){ const all=allJudgeQs(); const p=UI.jqPool||'all';
-  const f=p==='cases'?all.filter(x=>x.cid):p==='hub'?all.filter(x=>x.hub):p.startsWith('sub:')?all.filter(x=>x.hub===p.slice(4)):p.startsWith('topic:')?all.filter(x=>x.topic===p.slice(6)):all;
+  const f=p==='econ'?all.filter(x=>x.econ||(x.cid&&caseById(x.cid)?.econ)):p.startsWith('eunit:')?all.filter(x=>x.unit===p.slice(6)):p.startsWith('epi:')?all.filter(x=>x.econ===p.slice(4)):p==='cases'?all.filter(x=>x.cid):p==='hub'?all.filter(x=>x.hub):p.startsWith('sub:')?all.filter(x=>x.hub===p.slice(4)):p.startsWith('topic:')?all.filter(x=>x.topic===p.slice(6)):all;
   return f.length?f:all; }
 V.judge=()=>{
   const all=judgePool(); if(!UI.jq) UI.jq={i:Math.floor(Math.random()*all.length),stage:'ready'};
   const J=UI.jq; const it=all[J.i%all.length]; const p=UI.jqPool||'all';
-  const srcs=[['all',`Everything (${allJudgeQs().length})`],['cases','From the practice cases'],['hub','Finance Hub (all topics)'],...HUB.map(tp=>['topic:'+tp.id,'Hub: '+tp.title])];
-  const subOpt=p.startsWith('sub:')&&HUBSUB[p.slice(4)]?`<option value="${esc(p)}" selected>Sub-topic: ${esc(HUBSUB[p.slice(4)].title)}</option>`:'';
-  const facts=it.hub?(TALK_BY_SUB[it.hub]||[]).slice(0,3):[];
+  const srcs=[['all',`Everything (${allJudgeQs().length})`],['cases','From the practice cases'],['hub','Finance Hub (all topics)'],['econ','Econ Lab: all Economics (regionals)'],...ECON.units.map(u=>['eunit:'+u.id,'Econ: '+u.title]),...HUB.map(tp=>['topic:'+tp.id,'Hub: '+tp.title])];
+  const subOpt=p.startsWith('sub:')&&HUBSUB[p.slice(4)]?`<option value="${esc(p)}" selected>Sub-topic: ${esc(HUBSUB[p.slice(4)].title)}</option>`:p.startsWith('epi:')&&ECONPI[p.slice(4)]?`<option value="${esc(p)}" selected>Econ PI: ${esc(ECONPI[p.slice(4)].title)}</option>`:'';
+  const facts=it.hub?(TALK_BY_SUB[it.hub]||[]).slice(0,3):it.econ?D.talk.filter(t=>t.pis.includes(it.econ)).slice(0,3):[];
   return `<div class="wrap">${back('#roleplay','Roleplay')}${head('Judge questions','Every FTDM judge asks the same two questions to every team, and each partner should answer at least one. Practice answering with Answer → Reason → Example → Tie back.')}
   <div class="row"><select class="input" style="max-width:360px" data-in="jqPool" aria-label="Question pool">${subOpt}${srcs.map(([k,l])=>`<option value="${esc(k)}" ${k===p?'selected':''}>${esc(l)}</option>`).join('')}</select><span class="tiny faint">${all.length} questions in this pool</span><a class="btn sm" href="#cards-jq">${icon('cards')}Judge Q flashcards</a></div>
   <div class="card stack"><span class="label">The judge is the ${esc(it.ctx)}</span><p style="font-size:1.2rem;font-weight:650">"${esc(it.q)}"</p>
     ${J.stage!=='review'?`<div class="bigtimer" id="bigtimer" data-idle="45">${fmtTime(TIMER.endsAt&&TIMER.kind==='judgeQ'?TIMER.left():45)}</div>`:''}
     <div class="row" style="justify-content:center">${J.stage==='ready'?`<button class="btn primary lg" data-a="jqGo">${CL.tts?icon('vol')+'Ask me and start 45s':icon('play')+'Start 45 seconds'}</button>`:J.stage==='speak'?`<button class="btn lg" data-a="jqDone">Done answering</button>`:''}</div>
-    ${J.stage==='review'?`<div class="tp"><span class="label">A strong answer</span><div class="say">${esc(it.model||'Use the case model answer.')}</div>${facts.length?`<span class="label">Facts you could drop in</span>${facts.map(t=>`<p class="small"><strong>${esc(t.title)}:</strong> ${esc(t.say)}</p>`).join('')}`:''}${it.hub?`<a class="small" href="#hub-${it.hub}">Read the Finance Hub notes: ${esc(HUBSUB[it.hub].title)}</a>`:`<a class="small" href="#case-${it.cid}">Open the full case</a>`}</div><button class="btn primary" data-a="jqNext">Next question</button>`:''}
+    ${J.stage==='review'?`<div class="tp"><span class="label">A strong answer</span><div class="say">${esc(it.model||'Use the case model answer.')}</div>${facts.length?`<span class="label">Facts you could drop in</span>${facts.map(t=>`<p class="small"><strong>${esc(t.title)}:</strong> ${esc(t.say)}</p>`).join('')}`:''}${it.hub?`<a class="small" href="#hub-${it.hub}">Read the Finance Hub notes: ${esc(HUBSUB[it.hub].title)}</a>`:it.econ?`<a class="small" href="#econ-${it.econ}">Read the Econ Lab lesson: ${esc(it.econ)} ${esc(ECONPI[it.econ].title)}</a>`:`<a class="small" href="#case-${it.cid}">Open the full case</a>`}</div><button class="btn primary" data-a="jqNext">Next question</button>`:''}
   </div></div>`;
 };
 

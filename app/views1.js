@@ -11,6 +11,7 @@ const IC = {
   progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   talk:'<path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2z"/>',
   hub:'<path d="M3 21h18M5 21v-9M9.5 21v-9M14.5 21v-9M19 21v-9M2 9.5 12 4l10 5.5z"/>',
+  econ:'<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/><path d="M16 8h3v3"/>',
   playbook:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h4"/>',
   prefs:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
   check:'<path d="M5 12l5 5L20 7"/>', flag:'<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>', play:'<path d="M7 4v16l13-8z"/>', stop:'<rect x="6" y="6" width="12" height="12" rx="1"/>',
@@ -20,7 +21,7 @@ const IC = {
 };
 const icon=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${cls}" aria-hidden="true">${IC[n]||''}</svg>`;
 const NAV=[['today','Today'],['learn','Learn'],['cards','Cards'],['exam','Exam'],['roleplay','Roleplay'],['team','Team']];
-const NAV2=[['hub','Finance Hub'],['talk','Talking points'],['playbook','Playbook'],['progress','Progress'],['prefs','Settings']];
+const NAV2=[['econ','Econ Lab'],['hub','Finance Hub'],['talk','Talking points'],['playbook','Playbook'],['progress','Progress'],['prefs','Settings']];
 const NAV_OF={lesson:'learn',pis:'learn',quiz:'exam',mock:'exam',review:'exam',case:'roleplay',drills:'roleplay',judge:'roleplay',judgemode:'roleplay',gen:'roleplay'};
 
 function renderChrome(){
@@ -34,11 +35,11 @@ function renderChrome(){
     const av=on.slice(0,3).map(p=>avatarOf(p.by)?`<img class="avatar" alt="" src="${esc(avatarOf(p.by))}">`:'').join('');
     tb.innerHTML = `${on.length?`<a href="#team" class="chip good" title="Partner online"><span class="dot on"></span>${esc(on.length===1?(CL.names[on[0].by]?.name||'Partner'):on.length+' online')} studying</a>`:''}
       <span class="avatars">${av}</span><span class="tiny faint" title="Sync status">${esc(st)}</span>
-      <a class="iconbtn" href="#hub" aria-label="Finance Hub">${icon('hub')}</a><a class="iconbtn" href="#talk" aria-label="Talking points">${icon('talk')}</a><a class="iconbtn" href="#progress" aria-label="Progress">${icon('progress')}</a><a class="iconbtn" href="#prefs" aria-label="Settings">${icon('prefs')}</a>`;
+      <a class="iconbtn" href="#econ" aria-label="Econ Lab">${icon('econ')}</a><a class="iconbtn" href="#hub" aria-label="Finance Hub">${icon('hub')}</a><a class="iconbtn" href="#talk" aria-label="Talking points">${icon('talk')}</a><a class="iconbtn" href="#progress" aria-label="Progress">${icon('progress')}</a><a class="iconbtn" href="#prefs" aria-label="Settings">${icon('prefs')}</a>`;
   }
 }
 function head(title,sub='',right=''){ return `<div class="pagehead"><div class="row nowrap between"><h1>${title}</h1>${right}</div>${sub?`<p class="muted">${sub}</p>`:''}</div>`; }
-function chipPI(code){ const p=PI[code]; const has=typeof DEEP!=='undefined'&&DEEP[code]; const h=piHits(code); return `<span class="chip pi${has?' link':''}" title="${esc(p?p.pi:'')}${h?` · on ${h} of ${NEXAMS} past exams`:''}${has?' · open deep dive':''}"${has?` data-a="goPI" data-pi="${esc(code)}" role="link" tabindex="0"`:''}>${esc(code)}</span>`; }
+function chipPI(code){ const p=PI[code]; if(ECONPI[code]){ const h=piHits(code); return `<span class="chip pi link" title="${esc(p?p.pi:'')}${h?` · on ${h} of ${NEXAMS} past exams`:''} · open in the Econ Lab" data-a="goEcon" data-pi="${esc(code)}" role="link" tabindex="0">${esc(code)}</span>`; } const has=typeof DEEP!=='undefined'&&DEEP[code]; const h=piHits(code); return `<span class="chip pi${has?' link':''}" title="${esc(p?p.pi:'')}${h?` · on ${h} of ${NEXAMS} past exams`:''}${has?' · open deep dive':''}"${has?` data-a="goPI" data-pi="${esc(code)}" role="link" tabindex="0"`:''}>${esc(code)}</span>`; }
 function bar(v,cls=''){ return `<div class="bar ${cls}"><i style="width:${clamp(Math.round(v),0,100)}%"></i></div>`; }
 function ring(p,label){ return `<div class="ring" style="--p:${clamp(p,0,100)}"><span>${label}</span></div>`; }
 function back(href,label){ return `<a href="${href}" class="btn ghost sm" style="align-self:flex-start">${icon('back')}${esc(label)}</a>`; }
@@ -82,6 +83,7 @@ V.today=()=>{
 V.learn=()=>{
   const ls=LESSON_ORDER.map(id=>LESSON[id]);
   return `<div class="wrap">${head('Learn','15 lessons covering every instructional area on the Finance exam. Read the ideas, then prove it with a 5-question check.')}
+  <a class="card stack-s" href="#econ" style="text-decoration:none;color:inherit;border-color:var(--accent)"><span class="label">Regionals focus · Econ Lab</span><strong>All ${ECON_ORDER.length} Economics PIs taught in depth, with flashcards, talking points, roleplays and judge questions</strong><span class="small muted">${ECON.units.length} units · ${ECONCARDS.length} flashcards · ${ECONJQ.length} judge questions · ${econCases().length} econ cases · ${econReadCount()} read</span></a>
   <a class="card stack-s" href="#hub" style="text-decoration:none;color:inherit;border-color:var(--accent)"><span class="label">New · Finance Hub</span><strong>Every FTDM topic in depth, plus the judge questions each one prepares you for</strong><span class="small muted">${HUB.length} topics · ${HUB_ORDER.length} sub-topics · ${JQCARDS.length} judge questions with strong answers · ${hubReadCount(HUB_ORDER)} read</span></a>
   <div class="grid3">
     <a class="card stack-s" href="#deep" style="text-decoration:none;color:inherit"><span class="label">Go deeper</span><strong>PI deep dives</strong><span class="small muted">${D.deep.length} PIs explained: what to say, real-world proof, exam traps</span></a>
@@ -122,7 +124,7 @@ V.pis=()=>{
 /* ================= FLASHCARDS ================= */
 V.cards=(deck)=>{
   if(UI.cardSession && UI.cardSession.deck===(deck||UI.cardSession.deck) && !UI.cardSession.finished) return cardSessionView();
-  const decks=[['all','Everything',D.cards],['facts','Real-world facts (roleplay)',FACTCARDS],['jq','Judge questions (roleplay Q&A)',JQCARDS],...LESSON_ORDER.map(id=>[id,LESSON[id].title,D.cards.filter(c=>c.lesson===id)])];
+  const decks=[['all','Everything',D.cards],['facts','Real-world facts (roleplay)',FACTCARDS],['jq','Judge questions (roleplay Q&A)',JQCARDS],['econ','Econ Lab: Economics terms (regionals)',ECONCARDS],['econjq','Econ Lab: judge questions',ECONJQ],...LESSON_ORDER.map(id=>[id,LESSON[id].title,D.cards.filter(c=>c.lesson===id)])];
   const sel=deck||'all'; const list=deckCards(sel); const due=dueCards(list).length, nw=newCardsIn(list).length; const cc=cardCounts(list);
   return `<div class="wrap">${head('Flashcards','Spaced repetition: rate how well you knew each card and the app schedules it right before you would forget. Again comes back in 10 minutes; easy cards wait weeks.')}
   <div class="card stack"><div class="row between"><div class="stack-s"><span class="label">Deck</span><select class="input" data-in="deck" style="max-width:340px">${decks.map(([k,l,a])=>`<option value="${k}" ${k===sel?'selected':''}>${esc(l)} (${a.length})</option>`).join('')}</select></div>
@@ -137,11 +139,11 @@ V.cards=(deck)=>{
 function cardSessionView(){
   const cs=UI.cardSession; const c=CARD[cs.queue[0]];
   if(!c){ cs.finished=true; return `<div class="wrap">${head('Session complete')}<div class="card stack"><p>You reviewed <strong>${cs.done}</strong> cards. ${cs.again} needed another look.</p><div class="row"><a class="btn primary" href="#today">Back to today</a><button class="btn" data-a="startCards" data-deck="${cs.deck}" data-mode="due">Keep going</button></div></div></div>`; }
-  const rev=UI.reverse && c.lesson!=='facts' && c.lesson!=='jq'; const front=rev?c.d:c.t; const backMain=rev?c.t:c.d;
+  const rev=UI.reverse && c.lesson!=='facts' && c.lesson!=='jq' && c.lesson!=='econjq'; const front=rev?c.d:c.t; const backMain=rev?c.t:c.d;
   return `<div class="wrap"><div class="row between"><button class="btn ghost sm" data-a="endCards">${icon('back')}End session</button><span class="mono small faint">${cs.done} done · ${cs.queue.length} left</span></div>
   <div class="flash ${cs.flipped?'flipped':''}" data-a="flip" role="button" tabindex="0" aria-label="Flip card">
-    <div class="flash-inner"><div class="face front"><span class="label">${c.lesson==='facts'?'Real-world fact':c.lesson==='jq'?'Judge question · answer out loud':esc(LESSON[c.lesson]?.title||'')}${S.cards[c.id]?'':' · new'}</span><div class="center"><div class="term" style="${rev?'font-size:1.15rem;font-weight:600;font-family:var(--f-body)':''}">${esc(front)}</div></div><span class="tiny faint">Tap or press Space to reveal</span></div>
-    <div class="face back"><span class="label">${rev?'Term':c.lesson==='jq'?'A strong answer':'Meaning'}</span><div class="center"><div style="font-size:1.08rem;${rev?'font-family:var(--f-display);font-size:1.4rem;font-weight:700':''}">${esc(backMain)}</div>${c.x?`<div class="tip">${c.lesson==='facts'?'<strong>Say it:</strong> ':'<strong>Tip:</strong> '}${esc(c.x)}</div>`:''}${c.src?`<span class="tiny faint">${c.lesson==='jq'?'Finance Hub: ':'Source: '}${esc(c.src)}</span>`:''}</div></div></div></div>
+    <div class="flash-inner"><div class="face front"><span class="label">${c.lesson==='facts'?'Real-world fact':(c.lesson==='jq'||c.lesson==='econjq')?'Judge question · answer out loud':c.lesson==='econ'?'Econ Lab · '+esc(c.pi)+' '+esc(ECONPI[c.pi]?.title||''):esc(LESSON[c.lesson]?.title||'')}${S.cards[c.id]?'':' · new'}</span><div class="center"><div class="term" style="${rev?'font-size:1.15rem;font-weight:600;font-family:var(--f-body)':''}">${esc(front)}</div></div><span class="tiny faint">Tap or press Space to reveal</span></div>
+    <div class="face back"><span class="label">${rev?'Term':(c.lesson==='jq'||c.lesson==='econjq')?'A strong answer':'Meaning'}</span><div class="center"><div style="font-size:1.08rem;${rev?'font-family:var(--f-display);font-size:1.4rem;font-weight:700':''}">${esc(backMain)}</div>${c.x?`<div class="tip">${c.lesson==='facts'?'<strong>Say it:</strong> ':'<strong>Tip:</strong> '}${esc(c.x)}</div>`:''}${c.src?`<span class="tiny faint">${c.lesson==='jq'?'Finance Hub: ':c.lesson==='econjq'?'Econ Lab: ':'Source: '}${esc(c.src)}</span>`:''}</div></div></div></div>
   <div id="card-ctrl">${cardCtrl(c)}</div>
   </div>`;
 }
@@ -180,6 +182,8 @@ function startQuiz(spec){
   else if(spec==='missed'){ items=shuffle(D.questions.filter(q=>S.qs[q.id]?.w)).slice(0,25); title='Missed questions'; }
   else if(spec==='unseen'){ items=smartSet(20,{pool:D.questions.filter(q=>!S.qs[q.id]),reviewShare:0}); title='New questions'; }
   else if(spec==='hot'){ items=smartSet(20,{pool:D.questions.filter(q=>piHits(q.pi)>=8)}); title='High-yield: most-tested PIs'; mode='smart'; }
+  else if(spec==='econ'){ items=smartSet(20,{pool:QS_BY_AREA['Economics']||[]}); title='Economics practice'; }
+  else if(spec.startsWith('econu.')){ const u=ECONU[spec.slice(6)]; items=smartSet(15,{pool:D.questions.filter(q=>u&&u.pis.includes(q.pi))}); title='Econ: '+(u?u.title:''); }
   else if(spec.startsWith('lesson.')){ const id=spec.slice(7); items=smartSet(5,{pool:QS_BY_LESSON[id]||[]}); title='Check: '+(LESSON[id]?.title||''); }
   else if(spec.startsWith('area.')){ const a=decodeURIComponent(spec.slice(5)); items=smartSet(15,{pool:QS_BY_AREA[a]||[]}); title=a; }
   else if(spec.startsWith('pis.')){ const set=spec.slice(4).split(','); items=shuffle(D.questions.filter(q=>set.includes(q.pi))).slice(0,15); title=set.length===1?set[0]+' practice':'PI practice'; }

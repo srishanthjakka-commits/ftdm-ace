@@ -53,6 +53,7 @@ mark,.hl{background:var(--hl);color:var(--hl-ink);padding:0 .15em;border-radius:
 .topbar .sp{flex:1}
 .brand{white-space:nowrap}
 @media (max-width:600px){#topright .tiny{display:none}}
+@media (max-width:420px){#topright{gap:6px}#topright .iconbtn{width:34px;height:34px}.topbar .brand{font-size:.95rem}}
 .who{display:flex;align-items:center;gap:6px}
 .avatar{width:26px;height:26px;border-radius:50%;object-fit:cover;border:2px solid var(--surface);background:var(--surface-2)}
 .avatars{display:flex}.avatars .avatar+.avatar{margin-left:-8px}

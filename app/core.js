@@ -68,7 +68,7 @@ function areaShort(a){ return AREA_SHORT[a]||a; }
 
 /* ---------- state ---------- */
 const KEY='ftdm-ace-v1';
-function blankState(){ return {v:1,created:Date.now(),cards:{},qs:{},lessons:{},daily:{},quizzes:[],mocks:[],caseRuns:[],drillRuns:[],notes:{},talkStar:{},gen:[],hubRead:{},
+function blankState(){ return {v:1,created:Date.now(),cards:{},qs:{},lessons:{},daily:{},quizzes:[],mocks:[],caseRuns:[],drillRuns:[],notes:{},talkStar:{},gen:[],hubRead:{},econRead:{},
   settings:{t:0,examDate:'2026-12-07',regionalsDate:'2027-01-06',theme:'system',mockMinutes:60,blueprint:'district',newPerDay:0,voice:'buttery'}}; }
 let S = (()=>{ try{ const raw=localStorage.getItem(KEY); if(raw){ const s=JSON.parse(raw); const b=blankState(); return {...b,...s,settings:{...b.settings,...(s.settings||{})}}; } }catch(e){} return blankState(); })();
 let saveT=null;
@@ -94,7 +94,7 @@ function rateCard(id, g){ // g: 0 again, 1 hard, 2 good, 3 easy
 function cardPreview(id,g){ const p=S.cards[id]; const isNew=!p; let i=p?.i||0, e=p?.e||2.5;
   if(g===0) return '10m'; if(g===1) i=isNew||i<1?1:Math.max(1,Math.round(i*1.2)); else if(g===2) i=isNew||i<1?1:(i<3?3:Math.round(i*e)); else i=isNew||i<1?3:Math.round(Math.max(i,1)*e*1.3);
   i=Math.min(i,60); return i+'d'; }
-function deckCards(deck){ if(deck==='facts') return FACTCARDS; if(deck==='jq') return JQCARDS; if(deck==='all'||!deck) return D.cards; return D.cards.filter(c=>c.lesson===deck); }
+function deckCards(deck){ if(deck&&deck.startsWith('econ')) return econDeck(deck); if(deck==='facts') return FACTCARDS; if(deck==='jq') return JQCARDS; if(deck==='all'||!deck) return D.cards; return D.cards.filter(c=>c.lesson===deck); }
 function dueCards(list){ const now=Date.now(); return list.filter(c=>S.cards[c.id]&&S.cards[c.id].due<=now).sort((a,b)=>S.cards[a.id].due-S.cards[b.id].due); }
 function newCardsIn(list){ return list.filter(c=>!S.cards[c.id]); }
 function newPerDay(){ if(S.settings.newPerDay) return S.settings.newPerDay; const left=newCardsIn(D.cards).length; const d=daysUntil(S.settings.examDate); return d>2? clamp(Math.ceil(left/Math.max(1,d-2)),8,30) : 10; }
@@ -203,6 +203,7 @@ function buildPlan(){
     steps.push({id:'drill',title:'Two 60-second speaking drills',sub:'Answer out loud, then compare to the model',route:'#drills',have:Math.min(C('drills'),2),need:2});
     steps.push({id:'judge',title:'Answer 3 judge questions out loud',sub:'45 seconds each',route:'#judge',have:Math.min(C('judgeQs'),3),need:3});
     { const hs=nextHubSub(); if(hs) steps.push({id:'hub',title:'Finance Hub: '+hs.title,sub:'Read it, then answer one of its judge questions out loud',route:'#hub-'+hs.id,done:!!t.hub}); }
+    { const ep=nextEconPI(); if(ep) steps.push({id:'econ',title:'Econ Lab: '+ep.title,sub:'Regionals focus is Economics. Read it, then answer one of its judge questions out loud',route:'#econ-'+ep.code,done:!!t.econ}); }
     steps.push({id:'facts',title:'Study 8 real-world fact cards',sub:'Numbers and examples that make judges remember you',route:'#cards-facts',have:Math.min(C('factCards'),8),need:8});
     steps.push({id:'smart',title:'Answer 10 mixed questions',sub:'Keeps PI knowledge sharp for the roleplay',route:'#quiz-smart10',have:Math.min(C('smart'),10),need:10});
     if(!full) steps.push({id:'sketch',title:'Sketch one chart in 3 minutes',sub:'A visual you could hand the judge',route:'#sketch',done:!!t.sketch});
@@ -241,6 +242,7 @@ function mergeState(a,b){ // merge remote b into local a without losing anything
   out.notes=byLast(a.notes,b.notes);
   out.talkStar={...b.talkStar,...a.talkStar};
   out.hubRead={...(b.hubRead||{}),...(a.hubRead||{})};
+  out.econRead={...(b.econRead||{}),...(a.econRead||{})};
   out.settings=((b.settings?.t||0)>(a.settings?.t||0))?{...a.settings,...b.settings}:a.settings;
   return out; }
 function withTimeout(p,ms){ return Promise.race([p,new Promise(r=>setTimeout(()=>r(null),ms))]); }
